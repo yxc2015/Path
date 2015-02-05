@@ -5,14 +5,18 @@
  *      Author: yxc
  */
 
-#ifndef DEFINETYPE_HOST_H_
-#define DEFINETYPE_HOST_H_
+#ifndef DEFINE_TYPE_HOST_H_
+#define DEFINE_TYPE_HOST_H_
 
-#include <qd/qd_real.h>
-#include "../complexH.h"
+#include "../Complex/complexH.h"
 
 typedef double T1;
 
 #define CT complexH<double>
 
-#endif /* DEFINETYPE_HOST_H_ */
+inline double read_number(const char* number){
+	return atof(number);
+}
+
+
+#endif /* DEFINE_TYPE_HOST_H_ */

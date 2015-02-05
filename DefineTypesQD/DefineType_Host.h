@@ -5,17 +5,17 @@
  *      Author: yxc
  */
 
-#ifndef DEFINETYPE_HOST_H_
-#define DEFINETYPE_HOST_H_
+#ifndef __DEFINE_TYPE_QD_HOST_H_
+#define __DEFINE_TYPE_QD_HOST_H_
 
-#include <qd/qd_real.h>
-#include "../complexH.h"
+#include "../Complex/complexH.h"
 
 typedef qd_real T1;
 
-#define ERR 1E-55
-
 #define CT complexH<qd_real>
 
+inline qd_real read_number(const char* number){
+	return qd_real(number);
+}
 
-#endif /* DEFINETYPE_HOST_H_ */
+#endif /* __DEFINE_TYPE_QD_HOST_H_ */

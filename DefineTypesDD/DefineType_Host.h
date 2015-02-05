@@ -7,20 +7,17 @@
  *              "-D precision=dd" for double double precision, and
  *              "-D precision=qd" for quad double precision. */
 
-#ifndef __DEFINE_TYPE_DD_H__
-#define __DEFINE_TYPE_DD_H__
+#ifndef __DEFINE_TYPE_DD_HOST_H__
+#define __DEFINE_TYPE_DD_HOST_H__
 
-//#include <gqd_type.h>
-#include <qd/qd_real.h>
-#include "../complexH.h"
-//#include "../complex.h"
+#include "../Complex/complexH.h"
 
-//typedef gdd_real T;
 typedef dd_real T1;
 
-#define ERR 1E-25
-
 #define CT complexH<dd_real>
-//#define GT complex<gdd_real>
+
+inline dd_real read_number(const char* number){
+	return dd_real(number);
+}
 
 #endif
