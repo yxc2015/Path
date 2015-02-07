@@ -44,12 +44,6 @@ bool path_tracker(Workspace& workspace_cpu, CPUInstHom& cpu_inst_hom, Parameter 
 	    clock_t end_Predict = clock();
 	    timeSec_Predict += (end_Predict - begin_Predict) / static_cast<double>( CLOCKS_PER_SEC );
 
-		/*std::cout << "Predict X:" << std::endl;
-		workspace_cpu.print_x();
-
-	    std::cout << "X Array:" << std::endl;
-		workspace_cpu.print_x_array();*/
-
 		bool newton_success = CPU_Newton(workspace_cpu, cpu_inst_hom, path_parameter,\
 				             timeSec_Eval, timeSec_MGS, reverse);
 
@@ -86,20 +80,21 @@ bool path_tracker(Workspace& workspace_cpu, CPUInstHom& cpu_inst_hom, Parameter 
 	}
 
 	cpu_inst_hom.n_step_CPU = n_step;
+	cpu_inst_hom.n_point_CPU = n_point;
 
 	bool success = 0;
 	std::cout << "-------------- Path Tracking Report ---------------" << std::endl;
 	if(tmp_t_last->real == 1){
 		success = 1;
 		std::cout << "Success" << std::endl;
-		std::cout << "n_point = " << n_point << std::endl;
-		std::cout << "n_step = " << n_step << std::endl;
 	}
 	else{
 		std::cout << "Fail" << std::endl;
-		std::cout << "n_point = " << n_point << std::endl;
-		std::cout << "n_step = " << n_step << std::endl;
 	}
+
+	std::cout << "n_point = " << n_point << std::endl;
+	std::cout << "n_step = " << n_step << std::endl;
+
 	return success;
 }
 

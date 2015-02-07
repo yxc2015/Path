@@ -1,5 +1,8 @@
+#ifndef __PATH_GPU_EVAL_MON_SINGLE_CU_
+#define __PATH_GPU_EVAL_MON_SINGLE_CU_
+
 // Mon evalutaion and differentiation on GPU
-__global__ void eval_mon_level0_kernel(GT* workspace_mon, GT* x, GT*workspace_coef,
+__global__ void eval_mon_single_kernel(GT* workspace_mon, GT* x, GT*workspace_coef,
                            int* mon_pos_start, unsigned short* mon_pos, int n_mon) {
 	int idx = blockIdx.x*blockDim.x + threadIdx.x;
 	//int sys_idx = blockIdx.z;
@@ -17,3 +20,5 @@ __global__ void eval_mon_level0_kernel(GT* workspace_mon, GT* x, GT*workspace_co
 		deri[0] = x[pos[1]]*tmp;
 	}
 }
+
+#endif /*__PATH_GPU_EVAL_MON_SINGLE_CU_*/

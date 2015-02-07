@@ -1,12 +1,12 @@
-__global__ void mgs_small_normalize(GT* v, GT* R, \
+__global__ void mgs_small_normalize_kernel(GT* v, GT* R, \
 		int dimR, int rows, int rowsLog2, int cols, int pivot );
 
-__global__ void mgs_small_reduce(GT* v, GT* R, \
+__global__ void mgs_small_reduce_kernel(GT* v, GT* R, \
 		int dimR, int rows, int rowsLog2, int cols, int pivot );
 
-__global__ void mgs_small_backsubstitution(GT* R, GT*sol0, int dim);
+__global__ void mgs_small_backsubstitution_kernel(GT* R, GT*sol0, int dim);
 
-__global__ void mgs_small_backsubstitution_with_delta(GT* R, GT* sol0, \
+__global__ void mgs_small_backsubstitution_max_kernel(GT* R, GT* sol0, \
 		int dim, int dimLog2, double* max_delta_x);
 
 void mgs_small(GT* V, GT* R, GT* sol, int rows, int cols) {
@@ -21,12 +21,12 @@ void mgs_small(GT* V, GT* R, GT* sol, int rows, int cols) {
 	<< " rowsLog2 = " << rowsLog2 << std::endl;*/
 
 	for(int piv=0; piv<cols-1; piv++) {
-		mgs_small_normalize<<<1,BS>>>
+		mgs_small_normalize_kernel<<<1,BS>>>
 		(V,R,dimR,rows,rowsLog2,cols,piv);
-		mgs_small_reduce<<<cols-piv-1,BS>>>
+		mgs_small_reduce_kernel<<<cols-piv-1,BS>>>
 		(V,R,dimR,rows,rowsLog2,cols,piv);
 	}
-	mgs_small_backsubstitution<<<1,cols-1>>>(R,sol,cols-1);
+	mgs_small_backsubstitution_kernel<<<1,cols-1>>>(R,sol,cols-1);
 }
 
 void mgs_small_with_delta(GT* V, GT* R, GT* sol, int rows, int cols, double* max_delta_x) {
@@ -37,12 +37,12 @@ void mgs_small_with_delta(GT* V, GT* R, GT* sol, int rows, int cols, double* max
 	int dimLog2 = log2ceil(cols-1);// ceil for sum reduction
 
 	for(int piv=0; piv<cols-1; piv++) {
-		mgs_small_normalize<<<1,BS>>>
+		mgs_small_normalize_kernel<<<1,BS>>>
 		(V,R,dimR,rows,rowsLog2,cols,piv);
-		mgs_small_reduce<<<cols-piv-1,BS>>>
+		mgs_small_reduce_kernel<<<cols-piv-1,BS>>>
 		(V,R,dimR,rows,rowsLog2,cols,piv);
 	}
-	mgs_small_backsubstitution_with_delta<<<1,cols-1>>>(R,sol,cols-1, dimLog2, max_delta_x);
+	mgs_small_backsubstitution_max_kernel<<<1,cols-1>>>(R,sol,cols-1, dimLog2, max_delta_x);
 }
 
 int GPU_MGS(const CPUInstHom& hom, CT*& sol_gpu, CT*& matrix_gpu_q, CT*& matrix_gpu_r, int n_predictor, CT* V, int n_sys) {
@@ -66,7 +66,7 @@ int GPU_MGS(const CPUInstHom& hom, CT*& sol_gpu, CT*& matrix_gpu_q, CT*& matrix_
 	return 0;
 }
 
-__global__ void mgs_small_normalize(GT* v, GT* R, \
+__global__ void mgs_small_normalize_kernel(GT* v, GT* R, \
 int dimR, int rows, int rowsLog2, int cols, int pivot ) {
 	//int b = blockIdx.x;
 	int j = threadIdx.x;
@@ -110,7 +110,7 @@ int dimR, int rows, int rowsLog2, int cols, int pivot ) {
 	}
 }
 
-__global__ void mgs_small_reduce(GT* v, GT* R, \
+__global__ void mgs_small_reduce_kernel(GT* v, GT* R, \
 int dimR, int rows, int rowsLog2, int cols, int pivot )
 {
 	int b = blockIdx.x+1;
@@ -154,7 +154,7 @@ int dimR, int rows, int rowsLog2, int cols, int pivot )
 	if(j == 0) R[indR] = shv[1][0];
 }
 
-__global__ void mgs_small_backsubstitution(GT* R, GT*sol0, int dim)
+__global__ void mgs_small_backsubstitution_kernel(GT* R, GT*sol0, int dim)
 {
 	int j = threadIdx.x;
 	__shared__ GT sol[shmemsize/2];
@@ -177,7 +177,7 @@ __global__ void mgs_small_backsubstitution(GT* R, GT*sol0, int dim)
 	sol0[j] = sol[j];
 }
 
-__global__ void mgs_small_backsubstitution_with_delta(GT* R, GT* sol0, int dim, int dimLog2, double* max_delta_x)
+__global__ void mgs_small_backsubstitution_max_kernel(GT* R, GT* sol0, int dim, int dimLog2, double* max_delta_x)
 {
 	int j = threadIdx.x;
 	__shared__ GT sol[shmemsize/2];

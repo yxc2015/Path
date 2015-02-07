@@ -6,7 +6,6 @@
 #include<algorithm>
 
 #include "DefineType_Host.h"
-#include "poly.h"
 
 #define IntSet GeneralSet<int>
 #define ShortSet GeneralSet<short>

@@ -21,7 +21,7 @@ __global__ void matrix_init_zero(GT* V, int rows, int cols){
 }
 
 template <unsigned int row_block_size>
-__global__ void mgs_large_reduce_block_1_1(GT* V, GT* P, int row_block, int col_block, int rows, int cols, int piv_col_block)
+__global__ void mgs_large_reduce_block_kernel1_single_pivot(GT* V, GT* P, int row_block, int col_block, int rows, int cols, int piv_col_block)
 /*
  * Constant: matrix_block_row, matrix_block_pivot_col, matrix_block_reduce_col
  * row_block_size = matrix_block_row
@@ -105,7 +105,7 @@ __global__ void mgs_large_reduce_block_1_1(GT* V, GT* P, int row_block, int col_
 
 
 template <unsigned int row_block_size>
-__global__ void mgs_large_reduce_block_1(GT* V, GT* P, int row_block, int col_block, int rows, int cols, int piv_col_block)
+__global__ void mgs_large_reduce_block_kernel1(GT* V, GT* P, int row_block, int col_block, int rows, int cols, int piv_col_block)
 /*
  * Constant: matrix_block_row, matrix_block_pivot_col, matrix_block_reduce_col
  * row_block_size = matrix_block_row
@@ -200,7 +200,7 @@ __global__ void mgs_large_reduce_block_1(GT* V, GT* P, int row_block, int col_bl
 }
 
 //template <unsigned int n_th>
-__global__ void mgs_large_reduce_block_3_1(GT* V, GT* R, int row_block, int col_block, int rows, int cols, int piv_col_block)
+__global__ void mgs_large_reduce_block_kernel3_single_pivot(GT* V, GT* R, int row_block, int col_block, int rows, int cols, int piv_col_block)
 /*
  * Constant: matrix_block_row, matrix_block_pivot_col, matrix_block_reduce_col
  */
@@ -235,7 +235,7 @@ __global__ void mgs_large_reduce_block_3_1(GT* V, GT* R, int row_block, int col_
 }
 
 //template <unsigned int n_th>
-__global__ void mgs_large_reduce_block_3(GT* V, GT* R, int row_block, int col_block, int rows, int cols, int piv_col_block)
+__global__ void mgs_large_reduce_block_kernel3(GT* V, GT* R, int row_block, int col_block, int rows, int cols, int piv_col_block)
 /*
  * Constant: matrix_block_row, matrix_block_pivot_col, matrix_block_reduce_col
  */
@@ -277,7 +277,7 @@ __global__ void mgs_large_reduce_block_3(GT* V, GT* R, int row_block, int col_bl
 	}
 }
 
-__global__ void mgs_large_reduce_block_2(GT* P, GT* R, int row_block, int P_rows, int n_sum, int col_block_size, int cols, int piv_block){
+__global__ void mgs_large_reduce_block_kernel2(GT* P, GT* R, int row_block, int P_rows, int n_sum, int col_block_size, int cols, int piv_block){
 	int b = gridDim.x*blockIdx.y+blockIdx.x;
 	int tidx = threadIdx.x;
 	int idx = b*blockDim.x+tidx;
@@ -332,10 +332,10 @@ void mgs_large_reduce_block_rest(GT* V, GT* R, GT* P, int rows, int cols, int pi
 	//std::cout << "NB = " << NB << std::endl;
 	dim3 NB3 = get_grid(NB,1);
 	if(matrix_block_pivot_col==1){
-		mgs_large_reduce_block_1_1<matrix_block_row><<<NB3,matrix_block_row>>>(V, P, row_block, col_block, rows, cols, pivot_block);
+		mgs_large_reduce_block_kernel1_single_pivot<matrix_block_row><<<NB3,matrix_block_row>>>(V, P, row_block, col_block, rows, cols, pivot_block);
 	}
 	else{
-		mgs_large_reduce_block_1<matrix_block_row><<<NB3,matrix_block_row>>>(V, P, row_block, col_block, rows, cols, pivot_block);
+		mgs_large_reduce_block_kernel1<matrix_block_row><<<NB3,matrix_block_row>>>(V, P, row_block, col_block, rows, cols, pivot_block);
 	}
 
 	/*cudaMemcpy(P_host, P, row_block*matrix_block_pivot_col*cols*sizeof(GT),
@@ -366,7 +366,7 @@ void mgs_large_reduce_block_rest(GT* V, GT* R, GT* P, int rows, int cols, int pi
 	//std::cout << "n_sum = " << n_sum
 	//		  << " start = " << (cols-1)*col_block << std::endl;
 	NB3 = get_grid(NB,1);
-	mgs_large_reduce_block_2<<<NB3,BS_sum>>>(P+(pivot_block+1)*matrix_block_pivot_col*matrix_block_pivot_col, R, \
+	mgs_large_reduce_block_kernel2<<<NB3,BS_sum>>>(P+(pivot_block+1)*matrix_block_pivot_col*matrix_block_pivot_col, R, \
 			                         row_block, P_rows, n_sum, matrix_block_pivot_col, cols, pivot_block);
 
 	/*std::cout << "------------- Norm -----------" << std::endl;
@@ -384,10 +384,10 @@ void mgs_large_reduce_block_rest(GT* V, GT* R, GT* P, int rows, int cols, int pi
 
 	NB3 = get_grid(NB,1);
 	if(matrix_block_pivot_col==1){
-		mgs_large_reduce_block_3_1<<<NB3,matrix_block_row>>>(V, R, row_block, col_block, rows, cols, pivot_block);
+		mgs_large_reduce_block_kernel3_single_pivot<<<NB3,matrix_block_row>>>(V, R, row_block, col_block, rows, cols, pivot_block);
 	}
 	else{
-		mgs_large_reduce_block_3<<<NB3,matrix_block_row>>>(V, R, row_block, col_block, rows, cols, pivot_block);
+		mgs_large_reduce_block_kernel3<<<NB3,matrix_block_row>>>(V, R, row_block, col_block, rows, cols, pivot_block);
 	}
 }
 

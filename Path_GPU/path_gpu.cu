@@ -3,14 +3,14 @@
 #include "parameter.h"
 #include "complex.cu"
 
-#include "gpu_data.cu"
+#include "path_gpu_data.cu"
 
-#include "path_gpu_predict.cu"
-#include "path_gpu_newton.cu"
+#include "predict.cu"
+#include "newton.cu"
 
-bool path(GPUWorkspace& workspace, const GPUInst& inst, Parameter path_parameter, CT cpu_t, int& n_step, int n_sys, int inverse = 0) {
+bool path(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parameter, CT cpu_t, int n_sys, int inverse = 0) {
 	int n_point = 1;
-	n_step = 0;
+	int n_step = 0;
 
 	// Parameters
 	CT delta_t = CT(path_parameter.max_delta_t,0);
@@ -97,14 +97,13 @@ bool path(GPUWorkspace& workspace, const GPUInst& inst, Parameter path_parameter
 	if(tmp_t_last->real == 1) {
 		success = 1;
 		std::cout << "Success" << std::endl;
-		std::cout << "n_point = " << n_point << std::endl;
-		std::cout << "n_step = " << n_step << std::endl;
 	}
 	else {
 		std::cout << "Fail" << std::endl;
-		std::cout << "n_point = " << n_point << std::endl;
-		std::cout << "n_step = " << n_step << std::endl;
 	}
+
+	inst.n_step_GPU = n_step;
+	inst.n_point_GPU = n_point;
 	return success;
 }
 
@@ -116,13 +115,11 @@ bool GPU_Path(CPUInstHom& hom, Parameter path_parameter, CT* cpu_sol0, CT cpu_t,
 			               inst.n_eq, inst.dim, path_parameter.n_predictor, inst.alpha);
 	workspace.update_x_t(cpu_sol0, cpu_t);
 
-	int n_step;
-
 	struct timeval start, end;
 	long seconds, useconds;
 	gettimeofday(&start, NULL);
 
-	bool success = path(workspace, inst, path_parameter, cpu_t, n_step, n_sys, inverse);
+	bool success = path(workspace, inst, path_parameter, cpu_t, n_sys, inverse);
 	x_gpu = workspace.get_x_last();
 
 	gettimeofday(&end, NULL);
@@ -131,12 +128,19 @@ bool GPU_Path(CPUInstHom& hom, Parameter path_parameter, CT* cpu_sol0, CT cpu_t,
 	useconds = end.tv_usec - start.tv_usec;
 	double timeMS_Path_GPU = ((seconds) * 1000 + useconds/1000.0) + 0.5;
 	double timeSec_Path_GPU = timeMS_Path_GPU/1000;
+
 	cout << "Path GPU Test MS   Time: "<< timeMS_Path_GPU << endl;
 	cout << "Path GPU Test      Time: "<< timeSec_Path_GPU << endl;
+	cout << "Path GPU Step     Count: "<< inst.n_step_GPU << endl;
+	cout << "Path GPU Point    Count: "<< inst.n_point_GPU << endl;
+	cout << "Path GPU Eval     Count: "<< inst.n_eval_GPU << endl;
+	cout << "Path GPU MGS      Count: "<< inst.n_mgs_GPU << endl;
 
 	hom.timeSec_Path_GPU = timeSec_Path_GPU;
-
-	hom.n_step_GPU = n_step;
+	hom.n_step_GPU = inst.n_step_GPU;
+	hom.n_point_GPU = inst.n_point_GPU;
+	hom.n_eval_GPU = inst.n_eval_GPU;
+	hom.n_mgs_GPU = inst.n_mgs_GPU;
 
 	return success;
 }

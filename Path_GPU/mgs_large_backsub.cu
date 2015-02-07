@@ -2,7 +2,7 @@
 #define __PATH_GPU_MGS_LARGE_BACKSUB_CU__
 
 
-__global__ void mgs_large_backsubstitution_1(GT* R, GT* x, int dim, int pivot, int BS0, int BS)
+__global__ void mgs_large_backsubstitution_kernel1(GT* R, GT* x, int dim, int pivot, int BS0, int BS)
 {
 	int tidx = threadIdx.x;
 	__shared__ GT sol[BS_QR_Back];
@@ -28,7 +28,7 @@ __global__ void mgs_large_backsubstitution_1(GT* R, GT* x, int dim, int pivot, i
 	x[offset+tidx] = sol[tidx];
 }
 
-__global__ void mgs_large_backsubstitution_2(GT* R, GT* x, int dim, int pivot, int BS0, int BS)
+__global__ void mgs_large_backsubstitution_kernel2(GT* R, GT* x, int dim, int pivot, int BS0, int BS)
 {
 	int tidx = threadIdx.x;
 	int b = blockIdx.x+1;
@@ -70,9 +70,9 @@ void mgs_large_backsubstitution(GT* R, GT* sol, int rows, int cols){
 	for(int piv=rf-1; piv>=0; piv--) {
 		//std::cout<< "piv = " << piv << std::endl;
 		if(piv==rf-2)	BS_col = BS;
-		mgs_large_backsubstitution_1<<<1,BS_col>>>(R,sol,cols-1,piv,BS_col,BS);
+		mgs_large_backsubstitution_kernel1<<<1,BS_col>>>(R,sol,cols-1,piv,BS_col,BS);
 		if(piv==0)		break;
-		mgs_large_backsubstitution_2<<<piv,BS>>>(R,sol,cols-1,piv,BS_col,BS);
+		mgs_large_backsubstitution_kernel2<<<piv,BS>>>(R,sol,cols-1,piv,BS_col,BS);
 	}
 }
 

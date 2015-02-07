@@ -9,7 +9,7 @@
 #define CPU_INSTRUCTION_EVAL_H_
 
 #include "varset.h"
-#include "utilities.h"
+//#include "utilities.h"
 #include "poly.h"
 #include "workspace_host.h"
 #include <sys/time.h>
@@ -217,8 +217,15 @@ public:
 	double timeSec_Path_GPU;
 	bool success_CPU;
 	bool success_GPU;
+
 	int n_step_CPU;
 	int n_step_GPU;
+	int n_point_CPU;
+	int n_point_GPU;
+	int n_eval_CPU;
+	int n_eval_GPU;
+	int n_mgs_CPU;
+	int n_mgs_GPU;
 
     void init(MonSet* hom_monset, int n_monset, \
     		  int n_constant, int total_n_mon, int dim, int n_eq, int n_predictor, CT alpha);
@@ -237,6 +244,12 @@ public:
     	success_GPU = 0;
     	n_step_CPU = 0;
     	n_step_GPU = 0;
+    	n_point_CPU = 0;
+    	n_point_GPU = 0;
+    	n_eval_CPU = 0;
+    	n_eval_GPU = 0;
+    	n_mgs_CPU = 0;
+    	n_mgs_GPU = 0;
     }
 
     CPUInstHom(MonSet* hom_monset, int n_monset, int n_constant, int total_n_mon, int dim, int n_eq, int n_predictor, CT alpha)

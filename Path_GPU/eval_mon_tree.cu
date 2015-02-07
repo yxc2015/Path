@@ -1,53 +1,6 @@
-// Mon evalutation and differentiation on GPU, level 0 x[i] + 1 as its derivative
-__global__ void mon_block_unroll1(GT* workspace_d, GT* x_d,  GT* workspace_coef,\
-		                          int* mon_pos_start,\
-		                          unsigned short* pos_d, int n_mon){
-    int idx = blockIdx.x*blockDim.x + threadIdx.x;
-
-    if(idx < n_mon){
-        //int sys_idx = blockIdx.z;
-        //GT* x_d_tmp = x_d + sys_idx*dim;
-        //GT* workspace_d_tmp = workspace_d + sys_idx*workspace_size_int;
-		int tmp_start = mon_pos_start[idx];
-		GT* deri = workspace_d + tmp_start;
-		unsigned short* pos = pos_d + tmp_start;
-
-		GT tmp = workspace_coef[idx];
-		deri[1] = tmp;
-		deri[0] = x_d[pos[1]]*tmp;
-    }
-}
-
-// Mon evalutation and differentiation on GPU, level 1 x0*x1, x1, x0
-__global__ void mon_block_unroll2(GT* workspace_d, GT* x_d, GT* workspace_coef,
-        						  int* mon_pos_start,\
-		                          unsigned short* pos_d, int n_mon){
-    int idx = blockIdx.x*blockDim.x + threadIdx.x;
-
-    if(idx < n_mon){
-        //int sys_idx = blockIdx.z;
-        //GT* x_d_tmp = x_d + sys_idx*dim;
-        //GT* workspace_d_tmp = workspace_d + sys_idx*workspace_size_int;
-
-        //int xidx = idx*3;
-		int xidx = mon_pos_start[idx];
-
-        // Load to Shared Memory
-        GT x0, x1, tmp;
-
-        x1  = x_d[pos_d[xidx+2]];
-        tmp = workspace_coef[idx];
-        x0  = x_d[pos_d[xidx+1]]*tmp;
-
-        workspace_d[xidx+2] = x0;
-        workspace_d[xidx]   = x0*x1;
-        workspace_d[xidx+1] = x1*tmp;
-    }
-}
-
 // Sum block, mulitithread gpu sum unroll, for test
 template <unsigned int n_th>
-__global__ void mon_block_unroll(GT* workspace_d, GT* x_d, GT* workspace_coef,
+__global__ void eval_mon_tree_kernel(GT* workspace_d, GT* x_d, GT* workspace_coef,
 								 int* mon_pos_start,\
 								 unsigned short* pos_d, int n_mon){
         //GT* x_d, unsigned short* pos_d, GT* workspace_d, int n_mon,
@@ -250,7 +203,7 @@ __global__ void mon_block_unroll(GT* workspace_d, GT* x_d, GT* workspace_coef,
 
 // Sum block, mulitithread gpu sum unroll, for test
 template <unsigned int n_th>
-__global__ void mon_block_unroll_n(GT* workspace_d, GT* x_d, GT* workspace_coef,
+__global__ void eval_mon_tree_n_kernel(GT* workspace_d, GT* x_d, GT* workspace_coef,
 								 int* mon_pos_start,\
 								 unsigned short* pos_d, int n_mon){
         //                        int dim, int workspace_size_int){
@@ -458,9 +411,34 @@ __global__ void mon_block_unroll_n(GT* workspace_d, GT* x_d, GT* workspace_coef,
     	workspace_tmp[pos_idx] *= tmp;
     }
 }
+// Mon evalutation and differentiation on GPU, level 1 x0*x1, x1, x0
+__global__ void eval_mon_tree_2_kernel(GT* workspace_d, GT* x_d, GT* workspace_coef,
+        						  int* mon_pos_start,\
+		                          unsigned short* pos_d, int n_mon){
+    int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
+    if(idx < n_mon){
+        //int sys_idx = blockIdx.z;
+        //GT* x_d_tmp = x_d + sys_idx*dim;
+        //GT* workspace_d_tmp = workspace_d + sys_idx*workspace_size_int;
+
+        //int xidx = idx*3;
+		int xidx = mon_pos_start[idx];
+
+        // Load to Shared Memory
+        GT x0, x1, tmp;
+
+        x1  = x_d[pos_d[xidx+2]];
+        tmp = workspace_coef[idx];
+        x0  = x_d[pos_d[xidx+1]]*tmp;
+
+        workspace_d[xidx+2] = x0;
+        workspace_d[xidx]   = x0*x1;
+        workspace_d[xidx+1] = x1*tmp;
+    }
+}
 // Sum block, mulitithread gpu sum unroll, for test
-__global__ void mon_block_unroll_4(GT* workspace_d, GT* x_d, GT* workspace_coef,
+__global__ void eval_mon_tree_4_kernel(GT* workspace_d, GT* x_d, GT* workspace_coef,
 								 int* mon_pos_start,\
 								 unsigned short* pos_d, int n_mon){
         //GT* x_d, unsigned short* pos_d, GT* workspace_d, int n_mon,
@@ -530,7 +508,7 @@ __global__ void mon_block_unroll_4(GT* workspace_d, GT* x_d, GT* workspace_coef,
 
 
 // Sum block, mulitithread gpu sum unroll, for test
-__global__ void mon_block_unroll_4n(GT* workspace_d, GT* x_d, GT* workspace_coef,
+__global__ void eval_mon_tree_4n_kernel(GT* workspace_d, GT* x_d, GT* workspace_coef,
 								 int* mon_pos_start,\
 								 unsigned short* pos_d, int n_mon){
         //GT* x_d, unsigned short* pos_d, GT* workspace_d, int n_mon,

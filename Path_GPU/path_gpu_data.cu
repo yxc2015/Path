@@ -1,7 +1,7 @@
 #ifndef __GPU_DATA_CU_
 #define __GPU_DATA_CU_
 
-#include "gpu_data.h"
+#include "path_gpu_data.h"
 
 int get_NB(int n_job, int BS, int n_thread_per_job){
 	return (n_job*n_thread_per_job - 1)/BS + 1;

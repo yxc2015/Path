@@ -1,7 +1,7 @@
 #ifndef __PATH_GPU_MGS_LARGE_ROW_REDUCE_CU__
 #define __PATH_GPU_MGS_LARGE_ROW_REDUCE_CU__
 
-__global__ void mgs_large_row_reduce(GT* v, GT* R, int cols, int rows, int rowsLog2, \
+__global__ void mgs_large_row_reduce_kernel(GT* v, GT* R, int cols, int rows, int rowsLog2, \
 		int pivot, int rnd, int rndLog2, int BS, int BSLog2, T *pivnorm, int lastBSLog2, int piv_end = 0) {
 	int b = blockIdx.x + 1 + piv_end;
 	int j = threadIdx.x;

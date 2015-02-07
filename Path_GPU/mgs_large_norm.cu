@@ -1,7 +1,7 @@
 #ifndef __PATH_GPU_MGS_LARGE_NORM_CU__
 #define __PATH_GPU_MGS_LARGE_NORM_CU__
 
-__global__ void mgs_large_normalize_1(GT* v, GT* R, int rows, int rowsLog2, int cols,
+__global__ void mgs_large_normalize_kernel1(GT* v, GT* R, int rows, int rowsLog2, int cols,
 int pivot, int rnd, int rndLog2, int BS, int BSLog2, T *pivnorm, int lastBSLog2, T* sums_global)
 {
 	int b = blockIdx.x;
@@ -47,7 +47,7 @@ int pivot, int rnd, int rndLog2, int BS, int BSLog2, T *pivnorm, int lastBSLog2,
 	if(j == 0) sums_global[b] = shv[0];
 }
 
-__global__ void mgs_large_normalize_2(GT* v, GT* R, int rows, int rowsLog2, int cols,
+__global__ void mgs_large_normalize_kernel2(GT* v, GT* R, int rows, int rowsLog2, int cols,
 int pivot, int rnd, int rndLog2, int BS, int BSLog2, T *pivnorm, int lastBSLog2, T* sums_global)
 {
 	int b = blockIdx.x;

@@ -1,5 +1,7 @@
 // Mon evalutaion and differentiation on GPU
-__global__ void eval_mon_global_kernel(GT* workspace_mon, GT* x, GT* workspace_coef,
+#include "eval_mon_single.cu"
+
+__global__ void eval_mon_seq_kernel(GT* workspace_mon, GT* x, GT* workspace_coef,
 int* mon_pos_start, unsigned short* mon_pos, int n_mon) {
 	int idx = blockIdx.x*blockDim.x + threadIdx.x;
 	//int sys_idx = blockIdx.z;
@@ -33,4 +35,15 @@ int* mon_pos_start, unsigned short* mon_pos, int n_mon) {
 		deri[1] = tmp;
 		deri[0] = x[pos[1]]*tmp;
 	}
+}
+
+void eval_mon_seq(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
+	eval_mon_single_kernel<<<inst.mon_level_grid[0], inst.mon_level0_BS>>>(
+			workspace.mon, workspace.x, workspace.coef, inst.mon_pos_start,
+			inst.mon_pos, inst.n_mon_level[0]);
+
+	eval_mon_seq_kernel<<<inst.mon_global_grid, inst.mon_global_BS>>>(
+			workspace.mon, workspace.x, workspace.coef + inst.n_mon_level[0],
+			inst.mon_pos_start + inst.n_mon_level[0], inst.mon_pos,
+			inst.n_mon_global);
 }

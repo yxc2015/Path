@@ -20,6 +20,8 @@
 
 #define BS_QR_Back 256
 
+#define BS_Mon_Align 64
+
 // QR Reduce Parameters
 #define matrix_block_row 32
 #define matrix_block_pivot_col 4

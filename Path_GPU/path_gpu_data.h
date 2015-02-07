@@ -196,6 +196,11 @@ public:
 	int sum_BS;
 	dim3 sum_grid;
 
+	int n_step_GPU;
+	int n_point_GPU;
+	int n_eval_GPU;
+	int n_mgs_GPU;
+
 	CT alpha;
 
 	GPUInst(const CPUInstHom& cpu_inst, int n_sys){
@@ -214,6 +219,10 @@ public:
 
 		dim_BS = 32;
 	    dim_grid = get_grid(dim,dim_BS,n_sys);
+	    n_step_GPU = 0;
+	    n_point_GPU = 0;
+	    n_eval_GPU = 0;
+	    n_mgs_GPU = 0;
 	}
 
 	~GPUInst(){

@@ -1,7 +1,7 @@
-#include "path_gpu_mgs_large_backsub.cu"
-#include "path_gpu_mgs_large_norm.cu"
-#include "path_gpu_mgs_large_row_reduce.cu"
-#include "path_gpu_mgs_large_block_reduce.cu"
+#include "mgs_large_backsub.cu"
+#include "mgs_large_norm.cu"
+#include "mgs_large_row_reduce.cu"
+#include "mgs_large_block_reduce.cu"
 
 void mgs_large_reduce_block(GT* V, GT* R, GT* P, GT* sol, int rows, int cols);
 
@@ -61,12 +61,12 @@ void mgs_large_reduce_block(GT* V, GT* R, GT* P, GT* sol, int rows, int cols){
 
 		//std::cout << "piv_start = " << piv_start << ", piv_end = " << piv_end << std::endl;
 		for(int piv=piv_start; piv<piv_end; piv++) {
-			mgs_large_normalize_1<<<rf,BS>>>
+			mgs_large_normalize_kernel1<<<rf,BS>>>
 			(V,R,rows,rowsLog2,cols,piv,rf,rfLog2,BS,BSLog2,pivnrm,lastBSLog2,sums_global);
-			mgs_large_normalize_2<<<rf,BS>>>
+			mgs_large_normalize_kernel2<<<rf,BS>>>
 			(V,R,rows,rowsLog2,cols,piv,rf,rfLog2,BS,BSLog2,pivnrm,lastBSLog2,sums_global);
 			// XXX BS should be greater than maxround
-			mgs_large_row_reduce<<<piv_end-piv-1,BS>>>
+			mgs_large_row_reduce_kernel<<<piv_end-piv-1,BS>>>
 			(V,R,cols,rows,rowsLog2, piv,rf,rfLog2,BS,BSLog2,pivnrm,lastBSLog2);
 		}
 		if(col_block_idx != col_block-1){

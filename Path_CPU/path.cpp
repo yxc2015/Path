@@ -899,6 +899,11 @@ bool path_test(Workspace& workspace_cpu, CPUInstHom& cpu_inst_hom, Parameter pat
 		cout << "Path CPU Predict   Time: "<< timeSec_Predict_CPU << endl;
 		cout << "Path CPU Eval      Time: "<< timeSec_Eval_CPU << endl;
 		cout << "Path CPU MGS       Time: "<< timeSec_MGS_CPU << endl;
+		cout << "Path CPU Step     Count: "<< cpu_inst_hom.n_step_CPU << endl;
+		cout << "Path CPU Point    Count: "<< cpu_inst_hom.n_point_CPU << endl;
+		cout << "Path CPU Eval     Count: "<< cpu_inst_hom.n_eval_CPU << endl;
+		cout << "Path CPU MGS      Count: "<< cpu_inst_hom.n_mgs_CPU << endl;
+
 		cpu_inst_hom.timeSec_Path_CPU = timeSec_Path_CPU;
 	}
 

@@ -20,6 +20,8 @@
 
 #define BS_QR_Back 64
 
+#define BS_Mon_Align 128
+
 #define matrix_block_row 32
 #define matrix_block_pivot_col 1
 #define matrix_block_reduce_col 1
