@@ -14,6 +14,4 @@ typedef double T;
 
 #define GT gd_complex
 
-#define MON_EVAL_METHOD 2
-
 #endif /* DEFINE_TYPE_DD_DEVICE_H_ */

@@ -86,7 +86,7 @@ void read_until_line(ifstream& myfile, string prefix){
     		break;
     	}
     }
-    std::cout << tmp_line << std::endl;
+    //std::cout << tmp_line << std::endl;
 }
 
 void read_until_line(ifstream& myfile, string* prefix, int n_prefix){

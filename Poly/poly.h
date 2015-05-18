@@ -7,12 +7,12 @@
 #include <string>
 #include <cmath>
 #include <vector>
+#include <algorithm>
 
 #include "linklist.h"
 //#include "job.h"
 #include "dict.h"
 #include "utilities.h"
-
 
 /*typedef MonData<CT> MonNode;
 
@@ -43,23 +43,48 @@ public:
 	/// exponent array of variables in the monomial
 	int* exp;
 
-    int** pos_level;
-    int* n_pos_level;
-    int* pos_level_last;
+    //int** pos_level;
+    //int* n_pos_level;
+    //int* pos_level_last;
 
-    int n_level;
+    //int n_level;
 
 
 	PolyMon(){
+		coef = CT(0.0,0.0);
+		n_var = 0;
         dim = 0;
 		pos = NULL;
 		exp = NULL;
 	}
 
 	PolyMon(int dim){
+		coef = CT(0.0,0.0);
+		n_var = 0;
         this -> dim = dim;
 		pos = NULL;
 		exp = NULL;
+	}
+
+	PolyMon(int n, int* d, T1* c){
+		coef = CT(c[0],c[1]);
+		dim = n;
+		n_var = 0;
+		for(int var_idx=0; var_idx<dim; var_idx++){
+			if(d[var_idx]!=0){
+				n_var++;
+			}
+		}
+		pos = new int[n_var];
+		exp = new int[n_var];
+		int pos_idx = 0;
+		for(int var_idx=0; var_idx<dim; var_idx++){
+			if(d[var_idx]!=0){
+				pos[pos_idx] = var_idx;
+				exp[pos_idx] = d[var_idx];
+				pos_idx++;
+			}
+		}
 	}
 
 
@@ -171,6 +196,8 @@ public:
 		constant.init(0.0,0.0);
 		n_mon = 0;
 		dim = 0;
+	    level = 0;
+	    job_number_level = NULL;
 	}
 
 	/// Constructor 
@@ -178,6 +205,8 @@ public:
 		constant.init(0.0, 0.0);
 		n_mon = 0;
 		this -> dim = dim;
+	    level = 0;
+	    job_number_level = NULL;
 	}
 
 
@@ -273,8 +302,12 @@ public:
 	/// Constructor
 	PolySys(){
 		n_eq = 0;
-		max_deg = NULL;
+		dim = 0;
 		pos_var = NULL;
+		eq_space = NULL;
+		max_deg = NULL;
+		job_number_level = NULL;
+		level = 0;
 	}
 
 	/// Destructor
@@ -377,8 +410,8 @@ public:
 	PolySys* start_sys;
 	PolySys* target_sys;
 	int dim;
-	int n_start_sol;
-	CT* start_sols;
+	//int n_start_sol;
+	//CT* start_sols;
 
 	PolySysHom(PolySys* start_sys, PolySys* target_sys){
 		if(start_sys->dim != target_sys->dim){
@@ -413,13 +446,14 @@ class PolySol{
 public:
 	int dim;
 	// solution number
+	CT* sol;
+
 	int idx;
+	int path_idx;
 	// multiplicity
 	int m;
 
 	CT t;
-
-	CT* sol;
 	// error
 	T1 err;
 	// conditional number
@@ -427,78 +461,123 @@ public:
 	// residual
 	T1 res;
 
-	void init(ifstream& myfile, int dim);
+	// Success / Fail / Infinity
+	string info;
 
 	PolySol(){
+		dim = 0;
+		idx = 0;
+		path_idx = 0;
+		m = 0;
+		t = CT(0.0,0.0);
+		sol = NULL;
+		err = 0.0;
+		rco = 0.0;
+		res = 0.0;
 	}
+
+	void init(ifstream& myfile, int dim);
+
+	void init(ifstream& myfile, int dim, VarDict& pos_dict);
+
+	void init(CT* sol, int dim, T1 max_residual, T1 max_delta_x, int path_idx, string path_info);
+
+	void init(int dim, T1 t_real, T1 t_imag, T1* sol, \
+			T1 max_delta_x, T1 rco, T1 max_residual, \
+			int m, int path_idx, string path_info);
 
 	PolySol(ifstream& myfile, int dim){
 		init(myfile, dim);
 	}
 
+	PolySol(ifstream& myfile, int dim, VarDict& pos_dict){
+		init(myfile, dim, pos_dict);
+	}
+
+	PolySol(CT* sol, int dim, T1 max_residual = 0, T1 max_delta_x=0, int path_idx=0, string path_info=""){
+		init(sol, dim, max_residual, max_delta_x, path_idx, path_info);
+	}
+
+	PolySol(int dim, T1 t_real, T1 t_imag, T1* sol, \
+			T1 max_delta_x=0, T1 rco=0, T1 max_residual = 0, \
+			int m=0, int path_idx=0, string path_info=""){
+		init(dim, t_real, t_imag, sol, \
+			max_delta_x, rco, max_residual, m, path_idx, path_info);
+	}
+
 	~PolySol(){
 		delete[] sol;
-		//std::cout << "PolySol Deleted" << std::endl;
 	}
 
-	void print(){
-		std::cout << "Solution " << idx << ":" << std::endl;
-		std::cout << "t : " << t;
-		for(int i=0; i<dim; i++){
-			std::cout << i << " : " << sol[i];
-		}
-		std::cout << "== err : " << err \
-			      << " = rco : " << rco \
-			      << " = res : " << res \
-			      << " ==" << std::endl;
-	}
+	bool operator == (const PolySol& that);
 
-	CT* get_sol(){
-		CT* sol_tmp = new CT[dim];
-		for(int i=0; i<dim; i++){
-			sol_tmp[i] = sol[i];
-		}
-		return sol_tmp;
-	}
+	bool operator<(PolySol& that);
+
+	void print();
+
+	void print_short();
+
+	void print_info();
+
+	void print_info(string* pos_var);
+
+	CT* get_sol();
 };
+
+bool compare_sol(PolySol* sol1, PolySol* sol2);
 
 class PolySolSet{
 public:
 	int n_sol;
 	int dim;
-	PolySol* sols;
+	vector<PolySol*> sols;
+
+	void init(ifstream& myfile);
+
+	void init(ifstream& myfile, VarDict& pos_dict);
 
 	PolySolSet(){
 		n_sol = 0;
 		dim = 0;
-		sols = NULL;
 	}
-
-	void init(ifstream& myfile);
 
 	PolySolSet(ifstream& myfile){
 		init(myfile);
 	}
 
+	PolySolSet(int dim){
+		this->dim = dim;
+		n_sol = 0;
+	}
+
 	~PolySolSet(){
-		delete[] sols;
-		sols = NULL;
-		//std::cout << "PolySol Deleted" << std::endl;
-	}
-
-	void print(){
-		std::cout << "dim   = " << dim << std::endl\
-				  << "n_sol = " << n_sol << std::endl;
-
+		std::cout << "Delete PolySolSet" << std::endl;
 		for(int i=0; i<n_sol; i++){
-			sols[i].print();
+			delete sols[i];
 		}
-
 	}
 
-	CT* get_sol(int idx){
-		return sols[idx].get_sol();
-	}
+	bool find_same_sol(PolySol* tmp_sol);
+
+	int count_same_sol(PolySol* tmp_sol);
+
+	void add_sol(CT* new_sol, T1 max_residual=0, T1 max_delta_x=0, int path_idx=0, string path_info="");
+
+	void add_sol(PolySol* tmp_sol);
+
+	bool add_diff_sol(CT* new_sol);
+
+	void print();
+
+	void print_info(string* pos_var);
+
+	void print_short();
+
+	CT* get_sol(int idx);
+
+	void sort_set();
+
+	void compare(PolySolSet& that);
 };
 
 #endif

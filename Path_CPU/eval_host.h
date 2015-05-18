@@ -14,8 +14,9 @@
 #include "workspace_host.h"
 #include <sys/time.h>
 #include <unistd.h>
+#include "path_data.h"
 
-#define warp_size 32
+#define warp_size 10
 
 class CPUInstHomCoef{
   public:
@@ -44,7 +45,7 @@ class CPUInstHomCoef{
 
 	void eval(const CT t, CT* coef, int reverse=0);
 
-	void update_alpha();
+	void update_alpha(CT alpha=CT(0.0,0.0));
 };
 
 class CPUInstHomMon{
@@ -55,6 +56,7 @@ class CPUInstHomMon{
 	int* mon_pos_start;
 	int mon_pos_size;
 	unsigned short* mon_pos;
+	int flops_multiple;
 
 	CPUInstHomMon(){
 		level = 0;
@@ -63,9 +65,11 @@ class CPUInstHomMon{
 		mon_pos_start = NULL;
 		mon_pos_size = 0;
 		mon_pos = NULL;
+		flops_multiple = 0;
 	}
 
 	CPUInstHomMon(MonSet* hom_monset, int n_monset, int total_n_mon, int n_constant){
+		CPUInstHomMon();
 		init(hom_monset, n_monset, total_n_mon, n_constant);
 	}
 
@@ -168,6 +172,8 @@ class CPUInstHomSum{
 	int* sum_pos_start;
 	int sum_pos_size;
 	int* sum_pos;
+	int n_sum_zero;
+	int* sum_zeros;
 
 	CPUInstHomSum(){
 		n_sum = 0;
@@ -177,9 +183,11 @@ class CPUInstHomSum{
 		sum_pos_start = NULL;
 		sum_pos_size = 0;
 		sum_pos = NULL;
+		n_sum_zero = 0;
+		sum_zeros = NULL;
 	}
 
-	CPUInstHomSum(MonSet* hom_monset, int n_monset, const int* mon_pos_start,
+	CPUInstHomSum(MonSet* hom_monset, int n_monset, const int* mon_pos_start, \
 			             int dim, int n_eq, int n_constant){
 		init(hom_monset, n_monset, mon_pos_start, dim, n_eq, n_constant);
 	}
@@ -198,6 +206,39 @@ class CPUInstHomSum{
 	void print();
 };
 
+class CPUInstHomEq{
+public:
+	int n_eq;
+	int* n_mon_eq;
+	int* eq_pos_start;
+	int n_mon_total;
+	int* mon_pos_start_eq;
+	int n_pos_total;
+	unsigned short * mon_pos_eq;
+	CT* coef;
+
+	CPUInstHomEq(){
+		n_eq = 0;
+		n_mon_eq = NULL;
+		eq_pos_start = NULL;
+		n_mon_total = 0;
+		mon_pos_start_eq = NULL;
+		n_pos_total = 0;
+		mon_pos_eq = NULL;
+		coef = NULL;
+	}
+
+	CPUInstHomEq(MonSet* hom_monset, int n_monset, \
+			         int n_eq, int n_constant){
+		init(hom_monset, n_monset, n_eq, n_constant);
+	}
+
+	void init(MonSet* hom_monset, int n_monset, \
+	         int n_eq, int n_constant);
+
+	void print();
+};
+
 class CPUInstHom{
 public:
     CPUInstHomCoef CPU_inst_hom_coef;
@@ -206,6 +247,8 @@ public:
     CPUInstHomMonBlock CPU_inst_hom_block;
     CPUInstHomSumBlock CPU_inst_hom_sum_block;
 
+    CPUInstHomEq CPU_inst_hom_eq;
+
     int n_constant;
     int dim;
     int n_eq;
@@ -213,10 +256,16 @@ public:
     int n_predictor;
 
     // Record timing for both CPU and GPU
+    Path path_data;
 	double timeSec_Path_CPU;
 	double timeSec_Path_GPU;
+
 	bool success_CPU;
 	bool success_GPU;
+	CT t_CPU;
+	CT t_GPU;
+	T1 max_residual;
+	T1 max_delta_x;
 
 	int n_step_CPU;
 	int n_step_GPU;
@@ -238,10 +287,15 @@ public:
     	n_eq = 0;
     	n_coef = 0;
     	n_predictor = 0;
+    	// For record only
     	timeSec_Path_CPU = 0;
     	timeSec_Path_GPU = 0;
     	success_CPU = 0;
     	success_GPU = 0;
+    	t_CPU = CT(0.0,0.0);
+    	t_GPU = CT(0.0,0.0);
+    	max_residual = 0.0;
+    	max_delta_x = 0.0;
     	n_step_CPU = 0;
     	n_step_GPU = 0;
     	n_point_CPU = 0;
@@ -254,6 +308,23 @@ public:
 
     CPUInstHom(MonSet* hom_monset, int n_monset, int n_constant, int total_n_mon, int dim, int n_eq, int n_predictor, CT alpha)
 	{
+    	// For record only
+    	timeSec_Path_CPU = 0;
+    	timeSec_Path_GPU = 0;
+    	success_CPU = 0;
+    	success_GPU = 0;
+    	t_CPU = CT(0.0,0.0);
+    	t_GPU = CT(0.0,0.0);
+    	max_residual = 0.0;
+    	max_delta_x = 0.0;
+    	n_step_CPU = 0;
+    	n_step_GPU = 0;
+    	n_point_CPU = 0;
+    	n_point_GPU = 0;
+    	n_eval_CPU = 0;
+    	n_eval_GPU = 0;
+    	n_mgs_CPU = 0;
+    	n_mgs_GPU = 0;
     	init(hom_monset, n_monset, n_constant, total_n_mon, dim, n_eq, n_predictor, alpha);
 	}
 
@@ -266,7 +337,7 @@ public:
 
     void eval(Workspace& workspace_cpu, const CT* sol, const CT t, int reverse=0);
 
-    void update_alpha();
+    void update_alpha(CT alpha=CT(0.0,0.0));
 
 };
 

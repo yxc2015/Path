@@ -6,11 +6,10 @@
 void eval_mon_tree(GPUWorkspace& workspace, const GPUInst& inst, int n_sys);
 
 void eval_mon(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
-	int eval_method = 2;
-	if(eval_method == 0){
+	if(MON_EVAL_METHOD == 0){
 		eval_mon_seq(workspace, inst, n_sys);
 	}
-	else if(eval_method == 1){
+	else if(MON_EVAL_METHOD == 1){
 		eval_mon_seq_align(workspace, inst, n_sys);
 	}
 	else{
@@ -25,12 +24,31 @@ void eval_mon_tree(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
 	int* pos_start_tmp = inst.mon_pos_start;
 	GT* workspace_coef_tmp = workspace.coef;
 
+	/*dim3* mon_level_grid = new dim3[10];
+	dim3* mon_level_grid_rest = new dim3[10];
+
+	int n_path = workspace.n_path;
+
+    mon_level_grid[0] = get_grid(inst.n_mon_level[0],inst.mon_level0_BS,n_path);
+    mon_level_grid_rest[0] = get_grid(inst.n_mon_level_rest[0],inst.mon_global_BS,n_path);
+
+    mon_level_grid[1] = get_grid(inst.n_mon_level[1],inst.mon_global_BS,n_path);
+    mon_level_grid_rest[1] = get_grid(inst.n_mon_level_rest[1],inst.mon_global_BS,n_path);
+
+    int mon_level_BS = shmemsize/2;
+	int n_thread_per_job = 2;
+	for(int i=2; i<inst.level; i++){
+		inst.mon_level_grid[i] = get_grid(inst.n_mon_level[i],mon_level_BS,n_path, n_thread_per_job);
+	    mon_level_grid_rest[i] = get_grid(inst.n_mon_level_rest[i],inst.mon_global_BS,n_path, n_thread_per_job);
+	    n_thread_per_job *= 2;
+	}*/
+
 	int last_level = min(inst.level, max_level+1);
 	for(int i=0; i<last_level; i++){
 		if(i==0){
 			eval_mon_single_kernel<<<inst.mon_level_grid[0], inst.mon_level0_BS>>>(
 					workspace.mon, workspace.x, workspace.coef, inst.mon_pos_start,
-					inst.mon_pos, inst.n_mon_level[0]);
+					inst.mon_pos, inst.n_mon_level[0], workspace.workspace_size);
 		}
 		else if(i==1){
 			eval_mon_tree_2_kernel<<<inst.mon_level_grid[1], inst.mon_global_BS>>>(
@@ -81,7 +99,7 @@ void eval_mon_tree(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
 			dim3 mon_level_rest_grid = get_grid(n_mon_tmp, inst.mon_global_BS, n_sys, 1);
 			eval_mon_seq_kernel<<<mon_level_rest_grid, inst.mon_global_BS>>>(
 					workspace.mon, workspace.x, workspace_coef_tmp,
-					pos_start_tmp, inst.mon_pos, n_mon_tmp);
+					pos_start_tmp, inst.mon_pos, n_mon_tmp, workspace.workspace_size);
 
 		}
 		else if(max_level == 2){

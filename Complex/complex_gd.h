@@ -25,6 +25,7 @@ class gd_complex
     __device__ gd_complex adj();
     __device__ gd_complex adj_multiple(gd_complex a);
     __device__ double norm_double();
+    __device__ double norm1_double();
     __device__ void init_imag();
 
 	double real;

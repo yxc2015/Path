@@ -12,8 +12,8 @@ void Workspace::init(int workspace_size, int n_coef, int n_constant, int n_eq, i
 	this->n_eq = n_eq;
 	all = new CT[workspace_size];
 	coef = all;
-	std::cout << "n_constant = " << n_constant << std::endl;
-	std::cout << "n_coef = " << n_coef << std::endl;
+	//std::cout << "n_constant = " << n_constant << std::endl;
+	//std::cout << "n_coef = " << n_coef << std::endl;
 	//std::cout << "workspace_size = " << workspace_size << std::endl;
 	mon = coef + n_coef;
 	sum = mon - n_constant;

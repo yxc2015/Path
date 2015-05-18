@@ -628,6 +628,10 @@ public:
 		}
 	}
 
+	void write_coef(CT*& tmp_coef, int mon_idx){
+		eq_idx.elements[mon_idx].write_coef(tmp_coef);
+	}
+
 	void write_pos(int*& tmp_pos){
 		for(int i=0; i<pos.n; i++){
 			(*tmp_pos++) = pos.elements[i];

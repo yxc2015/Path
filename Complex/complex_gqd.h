@@ -27,6 +27,7 @@ class gqd_complex
     __device__ gqd_complex adj();
     __device__ gqd_complex adj_multiple(gqd_complex a);
     __device__ double norm_double();
+    __device__ double norm1_double();
     __device__ void init_imag();
 
 	gqd_real real;

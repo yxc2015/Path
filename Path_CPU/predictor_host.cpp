@@ -27,6 +27,7 @@ void predictor_newton(CT** x_array, CT* t_array_orig, int x_t_idx, int np_predic
     	std::cout << "t" << i << " " << t_array[i];
     }*/
 
+    //std::cout << "Predict Result" << std::endl;
     CT t_new = t_array_orig[x_t_idx];
     for(int i=0; i<np_predictor; i++){
     	t_diff[i] = t_new - t_array[i];
@@ -68,7 +69,7 @@ void predictor_newton(CT** x_array, CT* t_array_orig, int x_t_idx, int np_predic
 
         // Put X back
         x_array[x_t_idx][dim_idx] = x_tmp + div_diff[0];
-        //std::cout << "x_array[x_t_idx][dim_idx] = " << x_array[x_t_idx][dim_idx];
+        //std::cout << dim_idx << " " << x_array[x_t_idx][dim_idx];
     }
 
 }

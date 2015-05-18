@@ -71,6 +71,11 @@ __device__ double gqd_complex::norm_double()
 	return real.x*real.x + imag.x*imag.x;
 }
 
+__device__ double gqd_complex::norm1_double()
+{
+	return abs(real.x) + abs(imag.x);
+}
+
 __device__ void gqd_complex::init_imag()
 {
    imag.x = 0.0; imag.y = 0.0; imag.z = 0.0; imag.w = 0.0;

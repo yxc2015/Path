@@ -41,6 +41,8 @@ public:
 	CT* t;
 	CT* t_last;
 
+	int path_idx;
+
 	Workspace(){
 		all = NULL;
 		coef = NULL;
@@ -63,6 +65,7 @@ public:
 		n_predictor = 0;
 		x_t_idx = 0;
 		x_t_idx_last = 0;
+		path_idx = 0;
 	}
 
 	void init(int workspace_size, int n_coef, int n_constant, int n_eq, int dim, int n_predictor);

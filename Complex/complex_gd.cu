@@ -59,7 +59,12 @@ __device__ void gd_complex::operator/=(double a)
 
 __device__ double gd_complex::norm_double()
 {
-	return real*real + imag*imag;
+	return real + imag*imag;
+}
+
+__device__ double gd_complex::norm1_double()
+{
+	return abs(real) + abs(imag);
 }
 
 __device__ void gd_complex::init_imag()

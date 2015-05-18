@@ -14,6 +14,4 @@ typedef gqd_real T;
 
 #define GT gqd_complex
 
-#define MON_EVAL_METHOD 3
-
 #endif /* DEFINE_TYPE_QD_DEVICE_H_ */
