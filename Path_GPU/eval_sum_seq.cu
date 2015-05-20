@@ -51,9 +51,12 @@ __global__ void eval_sum_seq_kernel(GT* workspace_matrix, GT* workspace_sum, \
 
 void eval_sum_seq(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
     	dim3 sum_grid = get_grid(inst.n_sum,inst.sum_BS,workspace.n_path_continuous);
-		eval_sum_seq_kernel<<<sum_grid, inst.sum_BS>>>(workspace.matrix, \
+		//eval_sum_seq_kernel<<<sum_grid, inst.sum_BS>>>(workspace.matrix, \
 				workspace.sum, inst.sum_pos, inst.sum_pos_start, inst.n_sum, \
 				workspace.workspace_size, workspace.path_idx);
+		eval_sum_seq_kernel<<<sum_grid, inst.sum_BS>>>(workspace.matrix, \
+				workspace.sum, inst.sum_pos, inst.sum_pos_start, inst.n_sum, \
+				workspace.workspace_size);
 }
 
 #endif /*__PATH_GPU_EVAL_SUM_SEQ_CU_*/

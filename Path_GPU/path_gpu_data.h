@@ -14,6 +14,21 @@ dim3 get_grid(int n_job, int BS, int n_path, int n_thread_per_job = 1);
 
 class GPUWorkspace{
 public:
+
+	// Array for predictor usage
+	int dim;
+	int n_eq;
+	int n_array;
+	int n_predictor;
+	int mon_pos_size;
+	int n_constant;
+	int n_coef;
+	int n_path;
+	int n_path_continuous;
+
+	CT alpha;
+	GT* alpha_gpu;
+
 	GT* all;
 	GT* mon;
 	GT* coef;
@@ -28,32 +43,6 @@ public:
 	int n_matrix_R;
 	size_t size_matrix;
 
-	// Array for predictor usage
-	int dim;
-	int n_eq;
-	int n_array;
-	int n_predictor;
-	int n_constant;
-
-	int* int_arrays;
-	int* x_t_idx_mult;
-	int* n_point_mult;
-
-	int* newton_success;
-	int* newton_success_host;
-
-	int* path_idx;
-	int* path_idx_host;
-
-	int* path_success;
-	int* path_success_host;
-
-	int* n_success;
-	int* n_success_host;
-
-	int* end_range;
-	int* end_range_host;
-
 	int x_t_idx;
 
 	GT* x_array;
@@ -66,9 +55,6 @@ public:
 	GT* t_last;
 	GT* one_minor_t;
 	size_t t_array_size;
-	CT alpha;
-
-	GT* alpha1;
 
 	GT* V;
 	GT* R;
@@ -80,24 +66,15 @@ public:
 	GT* f_val; //fun value
 	GT* P;
 
-	int n_path;
-	int n_path_continuous;
-
-	GT* gt_arrays;
-	GT* x_mult_horizontal;
-	GT* x_mult;
-	GT* t_mult;
-	GT* t_last_mult;
-	GT* delta_t_mult;
-	GT* newton_t_mult;
-	GT* one_minor_t_mult;
-
-	size_t x_mult_size;
-	GT* x_mult_host;
-	GT* t_mult_host;
-	GT* t_last_mult_host;
-	GT* delta_t_mult_host;
-	GT* one_minor_t_mult_host;
+	// int arrays
+	int* int_arrays;
+	int* x_t_idx_mult;
+	int* n_point_mult;
+	int* path_idx;
+	int* path_success;
+	int* n_success;
+	int* end_range;
+	int* newton_success;
 
 	double* double_arrays;
 	double* max_delta_x_gpu;
@@ -107,54 +84,60 @@ public:
 	double* r_max_f_val_gpu;
 	double* max_x_gpu;
 
-	double* max_delta_x_host;
-	double* r_max_delta_x_host;
-	double* max_f_val_host;
-	double* r_max_f_val_host;
-	double* max_x_host;
-
-
-	int mon_pos_size;
 	size_t size_GT_arrays;
 	int n_GT_arrays;
 	GT* GT_arrays;
-
+	GT* x_mult;
+	GT* t_mult;
+	GT* t_last_mult;
+	GT* delta_t_mult;
+	GT* newton_t_mult;
+	GT* one_minor_t_mult;
 	GT* coef_mult;
-	//GT* coef_mult_host;
-	size_t coef_mult_size;
-
 	GT* sum_mult;
-	//GT* sum_mult_host;
-	size_t sum_mult_size;
-
 	GT* mon_mult;
-	//GT* mon_mult_host;
-	size_t mon_mult_size;
-
 	GT* matrix_mult;
 	GT* f_val_mult;
 	GT* matrix_mult_horizontal;
-	//GT* matrix_mult_host;
-	size_t matrix_mult_size;
 	GT* V_mult;
 	GT* R_mult;
 	GT* sol_mult;
 	GT* x_array_mult;
 	GT* t_array_mult;
 
-	size_t size_sol_mult;
-
-	int n_coef;
-
 	GT* workspace_eq;
 
+	int* newton_success_host;
+	int* path_idx_host;
+	int* path_success_host;
+
+	double* max_delta_x_host;
+	double* r_max_delta_x_host;
+	double* max_f_val_host;
+	double* r_max_f_val_host;
+	double* max_x_host;
+
 	GPUWorkspace(int n, int mon_pos_size, int n_coef, int n_constant, int n_eq, int dim, int n_predictor, CT alpha=CT(1,0), int n_path=1){
-		this->n = n;
 		this->mon_pos_size = mon_pos_size;
 		this->dim = dim;
 		this->n_eq = n_eq;
 		this->n_coef = n_coef;
 		this->n_constant = n_constant;
+		this->n_path = n_path;
+		this->n_path_continuous = n_path;
+		this->n_predictor = n_predictor;
+		this->dim = dim;
+		n_array = n_predictor + 1;
+
+		this->alpha = alpha;
+		cudaMalloc((void **)&alpha_gpu, sizeof(GT));
+		GT* alpha_gpu_host = (GT *)malloc(sizeof(GT));
+		comp1_qd2gqd(&alpha, alpha_gpu_host);
+		cudaMemcpy(alpha_gpu, alpha_gpu_host, sizeof(GT), \
+					cudaMemcpyHostToDevice);
+
+		this->n = n;
+
 		size_all = n*sizeof(GT);
 		//cudaMalloc((void **)&all, size_all);
 
@@ -162,48 +145,31 @@ public:
 
 		n_matrix = n_eq*(dim+1);
 		size_matrix = n_matrix*sizeof(GT);
-		//cudaMalloc((void **)&matrix, size_matrix);
 		workspace_size += n_matrix;
 
-		//init_matrix(dim, n_eq);
 		V_size = size_matrix;
 		R_size = (dim + 1)*(dim + 1)*sizeof(GT);
-		//cudaMalloc((void **)&R, R_size);
 		workspace_size += (dim + 1)*(dim + 1);
 
 		sol_size = dim*sizeof(GT);
 		std::cout << "dim = " << dim << " " << sol_size << std::endl;
-		//cudaMalloc((void **)&sol, sol_size);
 		workspace_size += dim;
 
 		int rows = n_eq;
 		int cols = dim+1;
 		int row_block = (rows-1)/matrix_block_row+1;
-		//cudaMalloc((void**)&P, row_block*matrix_block_pivot_col*cols*sizeof(GT));
 		workspace_size += row_block*matrix_block_pivot_col*cols;
-
-		//init_x_t(dim, n_predictor);
-		this->n_predictor = n_predictor;
-		this->dim = dim;
-		n_array = n_predictor + 1;
-
-		x_array_size = n_array*dim*sizeof(GT);
-		//cudaMalloc((void **)&x_array, x_array_size);
 		workspace_size += n_array*dim;
-
-		t_array_size = n_array*sizeof(GT);
-		//cudaMalloc((void **)&t_array, t_array_size);
 		workspace_size += n_array;
-
-		//cudaMalloc((void **)&one_minor_t, sizeof(GT));
 		workspace_size += 1;
+		x_array_size = n_array*dim*sizeof(GT);
+		t_array_size = n_array*sizeof(GT);
 
-		//std::cout << "worspace_size = " << n_path*workspace_size*sizeof(GT) << std::endl;
 		cudaMalloc((void **)&all, n_path*workspace_size*sizeof(GT));
 
 		matrix = all +n;
-		R = matrix+n_matrix;
 		V = matrix;
+		R = matrix+n_matrix;
 		sol = R + (dim + 1)*(dim + 1);
 		P = sol + dim;
 		x_array = P + row_block*matrix_block_pivot_col*cols;
@@ -213,17 +179,48 @@ public:
 		coef = all;
 		mon = coef + n_coef;
 		sum = mon - n_constant;
-
 		f_val = matrix + n_eq*dim;
-
 		x = x_array;
 		t = t_array;
-
 	    x_last = x;
 	    t_last = t;
 
 	    x_t_idx = 0;
 
+		// GT arrays
+		int n_x_t_arrays = n_path*(dim+5);
+		int n_eval_arrays = n_path*(n_coef+mon_pos_size+n_eq*(dim+1));
+		n_matrix_R = (dim+2)*(dim+1)/2;
+		int n_qr_arrays = n_path*(n_eq*(dim+1)+ n_matrix_R + dim);
+		int n_predict_arrays = n_path*(dim*(n_predictor+1)+(n_predictor+1));
+
+		n_GT_arrays = n_x_t_arrays+n_eval_arrays+n_qr_arrays+n_predict_arrays;
+		size_GT_arrays = n_GT_arrays*sizeof(GT);
+		cudaMalloc((void **) &GT_arrays, size_GT_arrays);
+
+		// GT arrays: Eval arrays
+		coef_mult = GT_arrays;
+		mon_mult = coef_mult + n_coef*n_path;
+		sum_mult = mon_mult - n_constant*n_path;
+		matrix_mult = mon_mult + mon_pos_size*n_path;
+		f_val_mult = matrix_mult + n_eq*dim*n_path;
+		// GT arrays: QR arrays
+		matrix_mult_horizontal = matrix_mult+n_path*n_eq*(dim+1);
+		V_mult = matrix_mult_horizontal;
+		R_mult = V_mult+n_matrix*n_path;
+		sol_mult = R_mult+n_matrix_R*n_path;
+		// GT arrays: Predict arrays
+		x_array_mult = sol_mult + dim*n_path;
+		t_array_mult = x_array_mult + dim*(n_predictor+1)*n_path;
+		// GT arrays: x and t arrays
+		x_mult           = t_array_mult + (n_predictor+1)*n_path;
+		t_mult           = x_mult + n_path*dim;
+		t_last_mult      = t_mult + n_path;
+		delta_t_mult     = t_mult + 2*n_path;
+		newton_t_mult    = t_mult + 3*n_path;
+		one_minor_t_mult = t_mult + 4*n_path;
+
+	    // int arrays
 		cudaMalloc((void **) &int_arrays, 7*n_path*sizeof(int));
 		x_t_idx_mult   = int_arrays;
 		n_point_mult   = int_arrays + n_path;
@@ -233,39 +230,7 @@ public:
 		path_idx       = int_arrays + 5*n_path;
 		end_range      = int_arrays + 6*n_path;
 
-		path_success_host = (int *)malloc(n_path*sizeof(int));
-		n_success_host = (int *)malloc(n_path*sizeof(int));
-		newton_success_host = (int *)malloc(n_path*sizeof(int));
-		path_idx_host = (int *)malloc(n_path*sizeof(int));
-		end_range_host = (int *)malloc(n_path*sizeof(int));
-
-		this->alpha = alpha;
-		cudaMalloc((void **)&alpha1, sizeof(GT));
-		GT* alpha1_host = (GT *)malloc(sizeof(GT));
-		comp1_qd2gqd(&alpha, alpha1_host);
-		cudaMemcpy(alpha1, alpha1_host, sizeof(GT), \
-					cudaMemcpyHostToDevice);
-
-		this->n_path = n_path;
-		this->n_path_continuous = n_path;
-
-		x_mult_size = n_path*dim*sizeof(GT);
-
-		cudaMalloc((void **) &gt_arrays, n_path*(2*dim+5)*sizeof(GT));
-		x_mult_horizontal = gt_arrays;
-		x_mult            = gt_arrays + n_path*dim;
-		t_mult            = gt_arrays + 2*n_path*dim;
-		t_last_mult       = t_mult + n_path;
-		delta_t_mult      = t_mult + 2*n_path;
-		one_minor_t_mult  = t_mult + 3*n_path;
-		newton_t_mult     = t_mult + 4*n_path;
-
-		x_mult_host = (GT *)malloc(x_mult_size);
-		t_mult_host = (GT *)malloc(n_path*sizeof(GT));
-		t_last_mult_host = (GT *)malloc(n_path*sizeof(GT));
-		delta_t_mult_host = (GT *)malloc(n_path*sizeof(GT));
-		one_minor_t_mult_host = (GT *)malloc(n_path*sizeof(GT));
-
+		// double arrays
 		cudaMalloc((void **) &double_arrays, 6*n_path*sizeof(double));
 		max_delta_x_gpu    = double_arrays;
 		r_max_delta_x_gpu  = double_arrays + n_path;
@@ -274,36 +239,18 @@ public:
 		r_max_f_val_gpu    = double_arrays + 4*n_path;
 		max_x_gpu          = double_arrays + 5*n_path;
 
+		// host arrays
+		path_success_host = (int *)malloc(n_path*sizeof(int));
+		newton_success_host = (int *)malloc(n_path*sizeof(int));
+		path_idx_host = (int *)malloc(n_path*sizeof(int));
+
 		r_max_f_val_host   = (double *)malloc(n_path*sizeof(double));
 		max_f_val_host     = (double *)malloc(n_path*sizeof(double));
 		max_delta_x_host   = (double *)malloc(n_path*sizeof(double));
 		r_max_delta_x_host = (double *)malloc(n_path*sizeof(double));
 		max_x_host         = (double *)malloc(n_path*sizeof(double));
 
-		///////////////////////////////////////////
-		size_sol_mult = n_path*dim*sizeof(GT);
-
-		n_matrix_R = (dim+2)*(dim+1)/2;
-		n_GT_arrays = n_path*(n_coef+mon_pos_size+2*n_eq*(dim+1)+n_matrix_R+dim+dim*(n_predictor+1)+(n_predictor+1));
-		size_GT_arrays = n_path*(n_coef+mon_pos_size+2*n_eq*(dim+1)+n_matrix_R+dim+dim*(n_predictor+1)+(n_predictor+1))*sizeof(GT);
-		cudaMalloc((void **) &GT_arrays, size_GT_arrays);
-		coef_mult = GT_arrays;
-		mon_mult = coef_mult + n_coef*n_path;
-		sum_mult = mon_mult - n_constant*n_path;
-		matrix_mult = GT_arrays + (n_coef+mon_pos_size)*n_path;
-		f_val_mult = matrix_mult + n_eq*dim*n_path;
-		matrix_mult_horizontal = matrix_mult+n_path*n_eq*(dim+1);
-		V_mult = matrix_mult_horizontal;
-		R_mult = V_mult+n_matrix*n_path;
-		sol_mult = R_mult+n_matrix_R*n_path;
-		x_array_mult = sol_mult + dim*n_path;
-		t_array_mult = x_array_mult + dim*(n_predictor+1)*n_path;
-
-		coef_mult_size   = n_path*n_coef*sizeof(GT);
-		sum_mult_size    = n_path*n*sizeof(GT);
-		mon_mult_size    = n_path*(n-n_constant)*sizeof(GT);
-		matrix_mult_size = n_path*n_matrix*sizeof(GT);
-
+		// eq in one block, developping
 		workspace_eq=NULL;
 
 		std::cout << "GPU initialized" << std::endl;

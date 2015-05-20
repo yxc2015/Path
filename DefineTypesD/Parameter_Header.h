@@ -16,7 +16,7 @@
 
 #define shmemsize 512
 
-#define MON_EVAL_METHOD 3
+#define MON_EVAL_METHOD 0
 
 #define BS_QR 256
 

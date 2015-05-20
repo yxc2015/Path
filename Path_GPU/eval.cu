@@ -14,14 +14,14 @@
 void eval(GPUWorkspace& workspace, const GPUInst& inst) {
 
 	//std::cout << "workspace.n_path_continuous = " << workspace.n_path_continuous << std::endl;
-	dim3 coef_grid = get_grid(inst.n_coef, inst.coef_BS, workspace.n_path_continuous);
+	/*dim3 coef_grid = get_grid(inst.n_coef, inst.coef_BS, workspace.n_path_continuous);
 	eval_coef_kernel<<<coef_grid, inst.coef_BS>>>(workspace.coef,\
 			inst.coef, inst.n_coef, workspace.t_array, workspace.one_minor_t,\
-			workspace.workspace_size, workspace.x_t_idx_mult, workspace.path_idx);
+			workspace.workspace_size, workspace.x_t_idx_mult, workspace.path_idx);*/
 
-	/*eval_coef_kernel<<<inst.coef_grid, inst.coef_BS>>>(workspace.coef,\
+	eval_coef_kernel<<<inst.coef_grid, inst.coef_BS>>>(workspace.coef,\
 			inst.coef, inst.n_coef, workspace.t, workspace.one_minor_t,\
-			workspace.workspace_size);*/
+			workspace.workspace_size);
 
 	/*CT** gpu_workspace_all = new CT*[workspace.n_path];
 	CT** gpu_matrix_all = new CT*[workspace.n_path];
@@ -34,9 +34,9 @@ void eval(GPUWorkspace& workspace, const GPUInst& inst) {
 		}
 	}*/
 
-	//eval_mon(workspace, inst, workspace.n_path);
+	eval_mon(workspace, inst, workspace.n_path);
 
-	//eval_sum(workspace, inst, workspace.n_path);
+	eval_sum(workspace, inst, workspace.n_path);
 }
 
 int GPU_Eval(const CPUInstHom& hom, CT* cpu_sol0, CT* cpu_t, \
@@ -50,11 +50,13 @@ int GPU_Eval(const CPUInstHom& hom, CT* cpu_sol0, CT* cpu_t, \
 	GPUWorkspace workspace(inst.n_workspace, inst.mon_pos_size, inst.n_coef, inst.n_constant, inst.n_eq, inst.dim, n_predictor, inst.alpha, n_path);
 
 	dim3 update_t_grid = get_grid(n_path,inst.predict_BS,1);
+	std::cout << "n_path = " << n_path << std::endl;
+	std::cout << "inst.n_sum_zero = " << inst.n_sum_zero << std::endl;
 	path_mult_init_kernel<<<update_t_grid, inst.predict_BS>>>(workspace.t_mult, workspace.t_last_mult, \
-			workspace.delta_t_mult, workspace.t_array_mult, workspace.one_minor_t, workspace.alpha1, \
+			workspace.delta_t_mult, workspace.t_array_mult, workspace.one_minor_t, workspace.alpha_gpu, \
 			workspace.path_success, workspace.newton_success, workspace.end_range, workspace.n_success, workspace.max_f_val_last_gpu, \
 			workspace.n_point_mult, workspace.x_t_idx_mult, workspace.workspace_size, workspace.path_idx, n_path, \
-			workspace.matrix_mult, inst.n_sum_zero, inst.sum_zeros, workspace.n_predictor);
+			workspace.matrix_mult, 0, inst.sum_zeros, workspace.n_predictor);
 
 	if(x_t_idx!=NULL){
 		workspace.update_x_t_idx_all(x_t_idx);
@@ -65,7 +67,7 @@ int GPU_Eval(const CPUInstHom& hom, CT* cpu_sol0, CT* cpu_t, \
 	}
 	workspace.update_x_value_mult2(cpu_sol0, x_t_idx);
 	workspace.update_t_value_mult2(cpu_t, x_t_idx);
-	workspace.init_workspace_eq(inst.n_pos_total_eq, workspace.n_path);
+	//workspace.init_workspace_eq(inst.n_pos_total_eq, workspace.n_path);
 
 	bool mult = false;
 	if(MON_EVAL_METHOD == 3){
@@ -86,14 +88,11 @@ int GPU_Eval(const CPUInstHom& hom, CT* cpu_sol0, CT* cpu_t, \
 			gpu_workspace_all[path_idx] = new CT[workspace.n];
 			for(int i=0; i<workspace.n; i++){
 				gpu_workspace_all[path_idx][i] = gpu_workspace_mult[n_path*i+path_idx];
-				/*if(i<10){
-					std::cout << path_idx << " " << i << " " << gpu_workspace_all[path_idx][i];
-				}*/
 			}
 		}
 	}
 	else{
-		//eval(workspace, inst);
+		eval(workspace, inst);
 		//std::cout << "n_workspace = " << inst.n_workspace << std::endl;
 		gpu_workspace_all = new CT*[n_path];
 		gpu_matrix_all = new CT*[n_path];

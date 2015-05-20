@@ -9,6 +9,7 @@
 #include "newton.cu"
 
 bool path_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parameter, CT cpu_t, int n_path, int inverse = 0) {
+	bool debug = false;
 	int n_point = 1;
 	int n_step = 0;
 
@@ -33,6 +34,11 @@ bool path_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_paramete
 		std::cout << "delta_t = " << delta_t;
 		std::cout << "tmp_t   = " << *tmp_t;
 
+		bool end_range = false;
+		if(tmp_t->real>0.9){
+			end_range = true;
+		}
+
 		if(inverse == 0){
 			workspace.update_t_value(*tmp_t);
 		}
@@ -51,13 +57,15 @@ bool path_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_paramete
 		predict_newton_kernel<<<inst.predict_grid, inst.predict_BS>>>(workspace.x_array, workspace.t_array,
 				n_predictor, inst.dim, workspace.x_t_idx_mult, workspace.workspace_size);
 
-		std::cout << "Predict X:" << std::endl;
-		workspace.print_x();
+		if(debug){
+			std::cout << "Predict X:" << std::endl;
+			workspace.print_x();
+		}
 
 		/*std::cout << "X Array:" << std::endl;
 		workspace.print_x_array();*/
 
-		bool newton_success = newton(workspace, inst, path_parameter);
+		bool newton_success = newton_single(workspace, inst, path_parameter, end_range);
 
 		if(newton_success == 1) {
 			std::cout << "---------- success -----------"<< std::endl;
@@ -146,7 +154,7 @@ bool GPU_Path(CPUInstHom& hom, Parameter path_parameter, CT* cpu_sol0, CT cpu_t,
 	return success;
 }
 
-__global__ void update_t_kernel(GT* t_mult, GT* t_last_mult, GT* delta_t_mult, GT* t_array_mult, GT* alpha, \
+__global__ void update_t_kernel(GT* t_mult, GT* t_last_mult, GT* delta_t_mult, GT* t_array_mult,\
 		int* path_success, int* newton_success, int* end_range, int* n_success, \
 		int* n_point_mult, int* x_t_idx_mult, int workspace_size, int n_path, \
 		double step_increase, double step_decrease, int n_predictor){
@@ -267,12 +275,12 @@ int path_mult(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parameter, 
 	dim3 update_t_grid = get_grid(n_path,inst.predict_BS,1);
 
 	path_mult_init_kernel<<<update_t_grid, inst.predict_BS>>>(workspace.t_mult, workspace.t_last_mult, \
-			workspace.delta_t_mult, workspace.t_array_mult, workspace.one_minor_t, workspace.alpha1, \
+			workspace.delta_t_mult, workspace.t_array_mult, workspace.one_minor_t, workspace.alpha_gpu, \
 			workspace.path_success, workspace.newton_success, workspace.end_range, workspace.n_success, workspace.max_f_val_last_gpu, \
 			workspace.n_point_mult, workspace.x_t_idx_mult, workspace.workspace_size, workspace.path_idx, n_path, \
 			workspace.matrix_mult, inst.n_sum_zero, inst.sum_zeros, workspace.n_predictor);
 
-	path_mult_x_init_kernel<<<n_path, inst.dim>>>(workspace.x_mult_horizontal, workspace.x_array_mult, \
+	path_mult_x_init_kernel<<<n_path, inst.dim>>>(workspace.x_mult, workspace.x_array_mult, \
 			workspace.workspace_size, inst.dim, workspace.n_predictor);
 
 	cudaMemcpy(workspace.path_success_host, workspace.path_success, n_path*sizeof(int),
@@ -323,7 +331,7 @@ int path_mult(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parameter, 
 		newton_align(workspace, inst, path_parameter);
 
 		update_t_kernel<<<update_t_grid, inst.predict_BS>>>(workspace.t_mult, workspace.t_last_mult, \
-				workspace.delta_t_mult, workspace.t_array_mult, workspace.alpha1, \
+				workspace.delta_t_mult, workspace.t_array_mult, \
 				workspace.path_success, workspace.newton_success, workspace.end_range, workspace.n_success, \
 				workspace.n_point_mult, workspace.x_t_idx_mult, workspace.workspace_size, n_path, \
 				path_parameter.step_increase, path_parameter.step_decrease, workspace.n_predictor);
@@ -389,7 +397,7 @@ int path_mult(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parameter, 
 					cudaMemcpyHostToDevice);
 	}
 
-	path_mult_x_finish_kernel<<<n_path, inst.dim>>>(workspace.x_mult_horizontal,\
+	path_mult_x_finish_kernel<<<n_path, inst.dim>>>(workspace.x_mult,\
 			workspace.x_array_mult, workspace.x_t_idx_mult, \
 			workspace.workspace_size, inst.dim, workspace.n_predictor);
 

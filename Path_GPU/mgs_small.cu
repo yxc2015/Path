@@ -1182,7 +1182,7 @@ __global__ void mgs_small_backsubstitution_max_kernel(GT* R, GT* sol0, int dim, 
 	sol0[t_idx] = sol[t_idx];
 
 	// max for the norm
-	delta_x[t_idx] = sol[t_idx].norm_double();
+	delta_x[t_idx] = sol[t_idx].norm1_double();
 	__syncthreads();
 
 	dimLog2 -= 1;

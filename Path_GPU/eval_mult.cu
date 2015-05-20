@@ -983,8 +983,9 @@ void eval_eq(GPUWorkspace& workspace, const GPUInst& inst){
 			workspace.mon_mult, workspace.x_mult2, workspace.matrix_mult, inst.mon_pos_start, \
 			inst.mon_pos, workspace.workspace_size, workspace.n_matrix, inst.dim);*/
 
+	// x_mult = x_mult_horizontal
 	eval_eq_kernel<<<grid_eq, 30>>>( \
-				workspace.mon_mult, workspace.x_mult_horizontal, workspace.matrix_mult, inst.mon_pos_start_block, \
+				workspace.mon_mult, workspace.x_mult, workspace.matrix_mult, inst.mon_pos_start_block, \
 				inst.mon_pos_block, workspace.workspace_size, workspace.n_matrix, inst.dim, 3);
 
 	/*std::cout << "workspace.dim = " << workspace.dim
