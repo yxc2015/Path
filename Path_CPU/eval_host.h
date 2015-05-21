@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include "path_data.h"
 
-#define warp_size 10
+#define warp_size 32
 
 class CPUInstHomCoef{
   public:

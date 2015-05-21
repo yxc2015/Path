@@ -23,48 +23,27 @@ public:
 	int mon_pos_size;
 	int n_constant;
 	int n_coef;
+
+	int n_row;
+	int n_col;
+	int n_matrix;
+	int n_matrix_R;
+	int n_matrix_P;
+
 	int n_path;
 	int n_path_continuous;
+
+
+	GT* x;
+	GT* x_last;
+	GT* t;
+	GT* t_last;
+	int x_t_idx;
 
 	CT alpha;
 	GT* alpha_gpu;
 
 	GT* all;
-	GT* mon;
-	GT* coef;
-	GT* sum;
-
-	int workspace_size;
-	int n;
-	size_t size_all;
-
-	GT* matrix; //jacobian and fun value
-	int n_matrix;
-	int n_matrix_R;
-	size_t size_matrix;
-
-	int x_t_idx;
-
-	GT* x_array;
-	GT* x;
-	GT* x_last;
-	size_t x_array_size;
-
-	GT* t_array;
-	GT* t;
-	GT* t_last;
-	GT* one_minor_t;
-	size_t t_array_size;
-
-	GT* V;
-	GT* R;
-	GT* sol;
-	size_t V_size;
-	size_t R_size;
-	size_t sol_size;
-
-	GT* f_val; //fun value
-	GT* P;
 
 	// int arrays
 	int* int_arrays;
@@ -87,25 +66,25 @@ public:
 	size_t size_GT_arrays;
 	int n_GT_arrays;
 	GT* GT_arrays;
+	GT* mon;
+	GT* coef;
+	GT* sum;
+	GT* matrix;
+	GT* f_val;
+	GT* V;
+	GT* R;
+	GT* P;
+	GT* sol;
+	GT* matrix_horizontal_mult;
+	GT* x_array;
+	GT* t_array;
+	GT* one_minor_t;
+
 	GT* x_mult;
 	GT* t_mult;
 	GT* t_last_mult;
 	GT* delta_t_mult;
 	GT* newton_t_mult;
-	GT* one_minor_t_mult;
-	GT* coef_mult;
-	GT* sum_mult;
-	GT* mon_mult;
-	GT* matrix_mult;
-	GT* f_val_mult;
-	GT* matrix_mult_horizontal;
-	GT* V_mult;
-	GT* R_mult;
-	GT* sol_mult;
-	GT* x_array_mult;
-	GT* t_array_mult;
-
-	GT* workspace_eq;
 
 	int* newton_success_host;
 	int* path_idx_host;
@@ -117,16 +96,24 @@ public:
 	double* r_max_f_val_host;
 	double* max_x_host;
 
-	GPUWorkspace(int n, int mon_pos_size, int n_coef, int n_constant, int n_eq, int dim, int n_predictor, CT alpha=CT(1,0), int n_path=1){
+	GT* workspace_eq;
+
+	// To be removed
+
+	int workspace_size;
+	int n;
+	size_t size_all;
+
+	GPUWorkspace(int n_eval_size, int mon_pos_size, int n_coef, int n_constant, int n_eq, int dim, int n_predictor, CT alpha=CT(1,0), int n_path=1){
 		this->mon_pos_size = mon_pos_size;
 		this->dim = dim;
 		this->n_eq = n_eq;
 		this->n_coef = n_coef;
 		this->n_constant = n_constant;
-		this->n_path = n_path;
-		this->n_path_continuous = n_path;
 		this->n_predictor = n_predictor;
 		this->dim = dim;
+		this->n_path = n_path;
+		this->n_path_continuous = n_path;
 		n_array = n_predictor + 1;
 
 		this->alpha = alpha;
@@ -136,89 +123,60 @@ public:
 		cudaMemcpy(alpha_gpu, alpha_gpu_host, sizeof(GT), \
 					cudaMemcpyHostToDevice);
 
-		this->n = n;
+		n_row = n_eq;
+		n_col = dim+1;
 
-		size_all = n*sizeof(GT);
-		//cudaMalloc((void **)&all, size_all);
-
-		workspace_size = n;
-
-		n_matrix = n_eq*(dim+1);
-		size_matrix = n_matrix*sizeof(GT);
-		workspace_size += n_matrix;
-
-		V_size = size_matrix;
-		R_size = (dim + 1)*(dim + 1)*sizeof(GT);
-		workspace_size += (dim + 1)*(dim + 1);
-
-		sol_size = dim*sizeof(GT);
-		std::cout << "dim = " << dim << " " << sol_size << std::endl;
-		workspace_size += dim;
-
-		int rows = n_eq;
-		int cols = dim+1;
-		int row_block = (rows-1)/matrix_block_row+1;
-		workspace_size += row_block*matrix_block_pivot_col*cols;
-		workspace_size += n_array*dim;
-		workspace_size += n_array;
-		workspace_size += 1;
-		x_array_size = n_array*dim*sizeof(GT);
-		t_array_size = n_array*sizeof(GT);
-
-		cudaMalloc((void **)&all, n_path*workspace_size*sizeof(GT));
-
-		matrix = all +n;
-		V = matrix;
-		R = matrix+n_matrix;
-		sol = R + (dim + 1)*(dim + 1);
-		P = sol + dim;
-		x_array = P + row_block*matrix_block_pivot_col*cols;
-		t_array = x_array+n_array*dim;
-		one_minor_t = t_array + n_array;
-
-		coef = all;
-		mon = coef + n_coef;
-		sum = mon - n_constant;
-		f_val = matrix + n_eq*dim;
-		x = x_array;
-		t = t_array;
-	    x_last = x;
-	    t_last = t;
-
-	    x_t_idx = 0;
+	    // Matrix size
+		n_matrix = n_row*n_col;
+		n_matrix_R = (n_col+1)*n_col/2;
+	    int row_block = 0;
+	    if(n_row > BS_QR){
+	    	row_block = (n_row-1)/matrix_block_row+1;
+	    }
+		n_matrix_P = row_block*matrix_block_pivot_col*n_col;
 
 		// GT arrays
-		int n_x_t_arrays = n_path*(dim+5);
-		int n_eval_arrays = n_path*(n_coef+mon_pos_size+n_eq*(dim+1));
-		n_matrix_R = (dim+2)*(dim+1)/2;
-		int n_qr_arrays = n_path*(n_eq*(dim+1)+ n_matrix_R + dim);
-		int n_predict_arrays = n_path*(dim*(n_predictor+1)+(n_predictor+1));
+		int n_eval_arrays = n_coef+mon_pos_size+n_eq*(dim+1);
+		int n_qr_arrays = n_matrix + n_matrix_R + n_matrix_P + dim;
+		int n_predict_arrays = dim*(n_predictor+1)+(n_predictor+1);
+		int n_x_t_arrays = dim+5;
 
-		n_GT_arrays = n_x_t_arrays+n_eval_arrays+n_qr_arrays+n_predict_arrays;
+		n_GT_arrays = n_path*(n_eval_arrays+n_qr_arrays+n_predict_arrays+n_x_t_arrays);
 		size_GT_arrays = n_GT_arrays*sizeof(GT);
 		cudaMalloc((void **) &GT_arrays, size_GT_arrays);
 
 		// GT arrays: Eval arrays
-		coef_mult = GT_arrays;
-		mon_mult = coef_mult + n_coef*n_path;
-		sum_mult = mon_mult - n_constant*n_path;
-		matrix_mult = mon_mult + mon_pos_size*n_path;
-		f_val_mult = matrix_mult + n_eq*dim*n_path;
+		coef   = GT_arrays;
+		mon    = coef + n_coef*n_path;
+		sum    = mon - n_constant*n_path;
+		matrix = mon + mon_pos_size*n_path;
+		f_val  = matrix + n_eq*dim*n_path;
+
 		// GT arrays: QR arrays
-		matrix_mult_horizontal = matrix_mult+n_path*n_eq*(dim+1);
-		V_mult = matrix_mult_horizontal;
-		R_mult = V_mult+n_matrix*n_path;
-		sol_mult = R_mult+n_matrix_R*n_path;
+		V = matrix;
+		R = V+n_matrix*n_path;
+		P = R + n_matrix_R*n_path;
+		sol = P+n_matrix_P*n_path;
+		matrix_horizontal_mult = sol + dim*n_path;
+
 		// GT arrays: Predict arrays
-		x_array_mult = sol_mult + dim*n_path;
-		t_array_mult = x_array_mult + dim*(n_predictor+1)*n_path;
+		x_array = matrix_horizontal_mult + n_matrix*n_path;
+		t_array = x_array + dim*(n_predictor+1)*n_path;
+
 		// GT arrays: x and t arrays
-		x_mult           = t_array_mult + (n_predictor+1)*n_path;
-		t_mult           = x_mult + n_path*dim;
-		t_last_mult      = t_mult + n_path;
-		delta_t_mult     = t_mult + 2*n_path;
-		newton_t_mult    = t_mult + 3*n_path;
-		one_minor_t_mult = t_mult + 4*n_path;
+		one_minor_t   = t_array + (n_predictor+1)*n_path;
+		// only for multiple path
+		x_mult        = one_minor_t + n_path;
+		t_mult        = x_mult + dim*n_path;
+		t_last_mult   = t_mult + n_path;
+		delta_t_mult  = t_mult + 2*n_path;
+		newton_t_mult = t_mult + 3*n_path;
+
+		x = x_array;
+		t = t_array;
+	    x_last = x;
+	    t_last = t;
+	    x_t_idx = 0;
 
 	    // int arrays
 		cudaMalloc((void **) &int_arrays, 7*n_path*sizeof(int));
@@ -240,9 +198,9 @@ public:
 		max_x_gpu          = double_arrays + 5*n_path;
 
 		// host arrays
-		path_success_host = (int *)malloc(n_path*sizeof(int));
+		path_success_host   = (int *)malloc(n_path*sizeof(int));
 		newton_success_host = (int *)malloc(n_path*sizeof(int));
-		path_idx_host = (int *)malloc(n_path*sizeof(int));
+		path_idx_host       = (int *)malloc(n_path*sizeof(int));
 
 		r_max_f_val_host   = (double *)malloc(n_path*sizeof(double));
 		max_f_val_host     = (double *)malloc(n_path*sizeof(double));
@@ -254,11 +212,28 @@ public:
 		workspace_eq=NULL;
 
 		std::cout << "GPU initialized" << std::endl;
+
+		// To be removed
+
+		n = mon_pos_size+n_coef;
+
+		std::cout << "n = " << n \
+				  << " mon_pos_size = " << mon_pos_size \
+				  << " n_coef = " << n_coef << std::endl;
+
+		size_all = n*sizeof(GT);
+		all = NULL;
+		//cudaMalloc((void **)&all, size_all);
+
+		workspace_size = n;
+		workspace_size += n_matrix;
+		workspace_size += n_matrix_R;
+		workspace_size += dim;
 	}
 
 	~GPUWorkspace(){
 		std::cout << "Delete GPUWorkspace" << std::endl;
-		cudaFree(all);
+		cudaFree(int_arrays);
 	}
 
 	void init_workspace_eq(int n_pos_total_eq, int n_path);

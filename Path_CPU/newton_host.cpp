@@ -54,7 +54,7 @@ bool CPU_Newton(Workspace& workspace_cpu, CPUInstHom& cpu_inst_hom, Parameter pa
     bool Debug = false;
     //Debug = true;
     if(workspace_cpu.path_idx == 0){
-    	Debug = true;
+    	//Debug = true;
     }
 
 	bool Record = false;

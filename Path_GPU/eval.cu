@@ -19,6 +19,7 @@ void eval(GPUWorkspace& workspace, const GPUInst& inst) {
 			inst.coef, inst.n_coef, workspace.t_array, workspace.one_minor_t,\
 			workspace.workspace_size, workspace.x_t_idx_mult, workspace.path_idx);*/
 
+	//std::cout << "inst.n_coef = " << inst.n_coef << std::endl;
 	eval_coef_kernel<<<inst.coef_grid, inst.coef_BS>>>(workspace.coef,\
 			inst.coef, inst.n_coef, workspace.t, workspace.one_minor_t,\
 			workspace.workspace_size);
@@ -53,10 +54,10 @@ int GPU_Eval(const CPUInstHom& hom, CT* cpu_sol0, CT* cpu_t, \
 	std::cout << "n_path = " << n_path << std::endl;
 	std::cout << "inst.n_sum_zero = " << inst.n_sum_zero << std::endl;
 	path_mult_init_kernel<<<update_t_grid, inst.predict_BS>>>(workspace.t_mult, workspace.t_last_mult, \
-			workspace.delta_t_mult, workspace.t_array_mult, workspace.one_minor_t, workspace.alpha_gpu, \
+			workspace.delta_t_mult, workspace.t_array, workspace.one_minor_t, workspace.alpha_gpu, \
 			workspace.path_success, workspace.newton_success, workspace.end_range, workspace.n_success, workspace.max_f_val_last_gpu, \
 			workspace.n_point_mult, workspace.x_t_idx_mult, workspace.workspace_size, workspace.path_idx, n_path, \
-			workspace.matrix_mult, 0, inst.sum_zeros, workspace.n_predictor);
+			workspace.matrix, 0, inst.sum_zeros, workspace.n_predictor);
 
 	if(x_t_idx!=NULL){
 		workspace.update_x_t_idx_all(x_t_idx);

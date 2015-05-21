@@ -15,16 +15,22 @@ T1 eval_compare(const CPUInstHom& cpu_inst_hom, \
 
 	int n_workspace = n_coef+cpu_inst_hom.CPU_inst_hom_mon.mon_pos_size;
 
-	//std::cout << "----- Coef Check CPU vs GPU ----"<< n_coef << std::endl;
-	//err_check_workspace(cpu_workspace, gpu_workspace, n_coef);
+	std::cout << "----- Coef Check CPU vs GPU ----"<< n_coef << std::endl;
+	err_check_workspace(cpu_workspace, gpu_workspace, n_coef);
 
 	if(MON_EVAL_METHOD != 1){
-		//std::cout << "----- Workspace Check CPU vs GPU ----" << std::endl;
-		//err_check_workspace(cpu_workspace, gpu_workspace, n_workspace);
+		std::cout << "----- Workspace Check CPU vs GPU ----" << std::endl;
+		err_check_workspace(cpu_workspace, gpu_workspace, n_workspace);
+		/*std::cout << "n_workspace = " << n_workspace << std::endl;
+		for(int i=10; i<20; i++){
+			std::cout << i << std::endl \
+					  << cpu_workspace[i] \
+					  << gpu_workspace[i];
+		}*/
 	}
 
-	//std::cout << "----- Jacobian and Fun Check CPU vs GPU ----" << cpu_inst_hom.n_eq*(cpu_inst_hom.dim+1) << std::endl;
-	T1 err = err_check_workspace(cpu_matrix, gpu_matrix, cpu_inst_hom.n_eq*(cpu_inst_hom.dim+1), 1);
+	std::cout << "----- Jacobian and Fun Check CPU vs GPU ----" << cpu_inst_hom.n_eq*(cpu_inst_hom.dim+1) << std::endl;
+	T1 err = err_check_workspace(cpu_matrix, gpu_matrix, cpu_inst_hom.n_eq*(cpu_inst_hom.dim+1), cpu_inst_hom.n_eq*(cpu_inst_hom.dim+1));
 
 	return err;
 }

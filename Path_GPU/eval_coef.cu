@@ -8,7 +8,7 @@ __global__ void eval_coef_kernel(GT* workspace_coef, const GT* coef_orig, int n_
 	int idx = bidx + tidx;
 
 	int path_idx = blockIdx.z;
-	workspace_coef += workspace_size*path_idx;
+	//workspace_coef += workspace_size*path_idx;
 
 	/*int path_idx = blockIdx.z;
 	 x_predictor += path_idx*np_predictor*dim;

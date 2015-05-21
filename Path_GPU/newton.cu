@@ -98,7 +98,7 @@ __global__ void update_x_kernel(GT* x_mult, GT* sol, int dim, int workspace_size
 	}
 }
 
-__global__ void mult_x_init(GT* x_array_mult, GT* t_array_mult, GT* alpha, \
+__global__ void mult_x_init(GT* x_array, GT* t_array, GT* alpha, \
 		GT* x_mult, GT* t_mult, GT* one_minor_t_mult, \
 		int* path_idx_mult, int* x_t_idx_mult, int n_path, int dim, int n_predictor){
 
@@ -109,14 +109,14 @@ __global__ void mult_x_init(GT* x_array_mult, GT* t_array_mult, GT* alpha, \
 		int path_idx = path_idx_mult[eval_idx];
 
 		//GT* t = t_array + workspace_size*path_idx + x_t_idx_mult[path_idx];
-		GT* tmp_t = t_array_mult + path_idx*(n_predictor+1) + x_t_idx_mult[path_idx];
+		GT* tmp_t = t_array + path_idx*(n_predictor+1) + x_t_idx_mult[path_idx];
 		//one_minor_t += workspace_size*path_idx;
 
 		t_mult[eval_idx] = *tmp_t;
 		one_minor_t_mult[eval_idx] = (*alpha)*(GT(1.0,0) - t_mult[eval_idx]);;
 		x_mult += eval_idx;
 		//GT* x = x_array + workspace_size*path_idx + x_t_idx_mult[path_idx]*dim;
-		GT* x_tmp = x_array_mult + path_idx*dim*(n_predictor+1)+ + x_t_idx_mult[path_idx]*dim;
+		GT* x_tmp = x_array + path_idx*dim*(n_predictor+1)+ + x_t_idx_mult[path_idx]*dim;
 
 		for(int var_idx=0; var_idx<dim; var_idx++){
 			x_mult[var_idx*n_path] = x_tmp[var_idx];
@@ -578,7 +578,9 @@ __global__ void array_max_double_kernel(GT* sol, int dim, int dimLog2, double* m
 }
 
 bool newton_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parameter, bool end_range=false) {
-    bool success = 0;
+    bool debug = false;
+    //debug = true;
+	bool success = false;
 	int rowsLog2 = log2ceil(inst.n_eq); // ceil for sum reduction
 	int dimLog2 = log2ceil(inst.dim); // ceil for sum reduction
 
@@ -611,12 +613,14 @@ bool newton_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parame
 	cudaMemcpy(&max_x, max_x_gpu, sizeof(double),
 			cudaMemcpyDeviceToHost);
 
-	std::cout << "          max_x : " << max_x << std::endl;
+	if(debug){
+		std::cout << "          max_x : " << max_x << std::endl;
+	}
 
 	eval(workspace, inst);
 	inst.n_eval_GPU++;
 
-	array_max_double_kernel<<<1, inst.n_eq>>>(workspace.f_val, inst.n_eq,
+	array_max_double_kernel<<<1, inst.n_eq>>>(workspace.f_val, inst.n_eq, \
 			rowsLog2, max_f_val_gpu);
 
 	cudaMemcpy(&max_f_val, max_f_val_gpu, sizeof(double),
@@ -624,8 +628,10 @@ bool newton_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parame
 
 	r_max_f_val = max_f_val/max_x;
 
-	std::cout << "   residual(a&r): " << max_f_val \
-			  << " " << r_max_f_val << std::endl;
+	if(debug){
+		std::cout << "   residual(a&r): " << max_f_val \
+				  << " " << r_max_f_val << std::endl;
+	}
 
     if(max_f_val < err_round_off || r_max_f_val < err_round_off){
     	success = 1;
@@ -635,8 +641,10 @@ bool newton_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parame
     double last_max_f_val = max_f_val;
 
 	for (int i = 0; i < path_parameter.max_it; i++) {
-		cout << "  Iteration " << i << endl;
-		if (inst.dim <= BS_QR) {
+		if(debug){
+			cout << "  Iteration " << i << endl;
+		}
+		if (inst.n_eq <= BS_QR) {
 			mgs_small_with_delta(workspace.matrix, workspace.R, workspace.sol,
 					inst.n_eq, inst.dim + 1, max_delta_x_gpu);
 			/*CT* tmp_sol =  workspace.get_sol();
@@ -654,8 +662,11 @@ bool newton_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parame
 		cudaMemcpy(&max_delta_x, max_delta_x_gpu, sizeof(double),
 				cudaMemcpyDeviceToHost);
 		r_max_delta_x = max_delta_x/max_x;
-		std::cout << " correction(a&r): " << max_delta_x \
-				  << " " << r_max_delta_x << std::endl;
+
+		if(debug){
+			std::cout << " correction(a&r): " << max_delta_x \
+					  << " " << r_max_delta_x << std::endl;
+		}
 
 		update_x_kernel<<<inst.dim_grid, inst.dim_BS>>>(workspace.x, workspace.sol,
 				inst.dim);
@@ -671,7 +682,9 @@ bool newton_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parame
 		cudaMemcpy(&max_x, max_x_gpu, sizeof(double),
 				cudaMemcpyDeviceToHost);
 
-		std::cout << "          max_x : " << max_x << std::endl;
+		if(debug){
+			std::cout << "          max_x : " << max_x << std::endl;
+		}
 
 		eval(workspace, inst);
 		inst.n_eval_GPU++;
@@ -682,8 +695,11 @@ bool newton_single(GPUWorkspace& workspace, GPUInst& inst, Parameter path_parame
 		cudaMemcpy(&max_f_val, max_f_val_gpu, sizeof(double),
 				cudaMemcpyDeviceToHost);
 		r_max_f_val = max_f_val/max_x;
-		std::cout << "   residual(a&r): " << max_f_val \
-				  << " " << r_max_f_val << std::endl;
+
+		if(debug){
+			std::cout << "   residual(a&r): " << max_f_val \
+					  << " " << r_max_f_val << std::endl;
+		}
 
 		if (max_f_val > last_max_f_val) {
 			success = 0;
@@ -962,8 +978,8 @@ bool newton_align(GPUWorkspace& workspace, GPUInst& inst, Parameter path_paramet
 
 	dim3 init_grid = get_grid(n_path_continuous, inst.coef_BS, 1);
 
-	mult_x_init<<<init_grid, inst.coef_BS>>>(workspace.x_array_mult, workspace.t_array_mult, workspace.alpha_gpu, \
-			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t_mult, \
+	mult_x_init<<<init_grid, inst.coef_BS>>>(workspace.x_array, workspace.t_array, workspace.alpha_gpu, \
+			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t, \
 			workspace.path_idx, workspace.x_t_idx_mult, n_path_continuous, inst.dim, workspace.n_predictor);
 
 	dim3 max_grid = get_grid(n_path_continuous,inst.predict_BS,1);
@@ -990,7 +1006,7 @@ bool newton_align(GPUWorkspace& workspace, GPUInst& inst, Parameter path_paramet
 			n_path_continuous, workspace.max_f_val_gpu, workspace.max_f_val_last_gpu, workspace.r_max_f_val_gpu, workspace.max_x_gpu, \
 			workspace.workspace_size, workspace.path_idx);*/
 
-	max_relative_double_kernel3<<<max_grid, inst.predict_BS>>>(workspace.f_val_mult, inst.n_eq,\
+	max_relative_double_kernel3<<<max_grid, inst.predict_BS>>>(workspace.f_val, inst.n_eq,\
 			n_path_continuous, workspace.n_path, workspace.path_idx, \
 			workspace.max_f_val_gpu, workspace.max_f_val_last_gpu, workspace.r_max_f_val_gpu, workspace.max_x_gpu);
 
@@ -1035,7 +1051,7 @@ bool newton_align(GPUWorkspace& workspace, GPUInst& inst, Parameter path_paramet
 				}
 			}*/
 			//std::cout << "n_matrix = " << workspace.n_matrix << std::endl;
-			mgs_small1_idx(workspace.matrix_mult_horizontal, workspace.R_mult, workspace.sol_mult, inst.n_eq, inst.dim+1,\
+			mgs_small1_idx(workspace.matrix_horizontal_mult, workspace.R, workspace.sol, inst.n_eq, inst.dim+1,\
 					workspace.workspace_size, workspace.n_matrix, workspace.n_matrix_R, n_path_continuous, workspace.path_idx);
 			//array_max_double_kernel<<<1,inst.dim>>>(workspace.sol, inst.dim, dimLog2, max_delta_x_gpu);
 			/*CT** sol_gpu = new CT*[n_path];
@@ -1052,7 +1068,7 @@ bool newton_align(GPUWorkspace& workspace, GPUInst& inst, Parameter path_paramet
 				//matrix_gpu_q[path_idx] = workspace.get_matrix(path_idx);
 				//matrix_gpu_r[path_idx] = workspace.get_matrix_r(path_idx);
 			}*/
-			max_relative_double_kernel<<<max_grid, inst.predict_BS>>>(workspace.sol_mult, inst.dim, n_path_continuous, \
+			max_relative_double_kernel<<<max_grid, inst.predict_BS>>>(workspace.sol, inst.dim, n_path_continuous, \
 					workspace.max_delta_x_gpu, workspace.r_max_delta_x_gpu, workspace.max_x_gpu, \
 					workspace.workspace_size, workspace.path_idx);
 		}
@@ -1075,7 +1091,7 @@ bool newton_align(GPUWorkspace& workspace, GPUInst& inst, Parameter path_paramet
 			}
 		}
 
- 		update_x_kernel<<<n_path_continuous, inst.dim>>>(workspace.x_array_mult, workspace.sol_mult, inst.dim, \
+ 		update_x_kernel<<<n_path_continuous, inst.dim>>>(workspace.x_array, workspace.sol, inst.dim, \
  				workspace.workspace_size, workspace.x_t_idx_mult, workspace.path_idx, workspace.n_predictor);
 
  		//workspace.print_x_mult();
@@ -1111,8 +1127,8 @@ bool newton_align(GPUWorkspace& workspace, GPUInst& inst, Parameter path_paramet
  		//workspace.print_x_mult();
  		init_grid = get_grid(n_path_continuous, inst.coef_BS, 1);
 
- 		mult_x_init<<<init_grid, inst.coef_BS>>>(workspace.x_array_mult, workspace.t_array_mult, workspace.alpha_gpu, \
- 				workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t_mult, \
+ 		mult_x_init<<<init_grid, inst.coef_BS>>>(workspace.x_array, workspace.t_array, workspace.alpha_gpu, \
+ 				workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t, \
  				workspace.path_idx, workspace.x_t_idx_mult, n_path_continuous, inst.dim, workspace.n_predictor);
 
  		max_x_double_kernel_align<<<max_grid, inst.predict_BS>>>(workspace.x_mult, inst.dim, \
@@ -1132,12 +1148,12 @@ bool newton_align(GPUWorkspace& workspace, GPUInst& inst, Parameter path_paramet
  		eval_mult(workspace, inst);
  		//inst.n_eval_GPU++;
 
- 		/*GT* tmp_f_val = workspace.matrix_mult_horizontal + inst.n_eq*inst.dim;
+ 		/*GT* tmp_f_val = workspace.matrix_horizontal_mult + inst.n_eq*inst.dim;
  		max_relative_double_kernel<<<max_grid, inst.predict_BS>>>(tmp_f_val, inst.n_eq, \
  				n_path_continuous, workspace.max_f_val_gpu, workspace.r_max_f_val_gpu, workspace.max_x_gpu, \
  				workspace.n_matrix, workspace.path_idx);*/
 
- 		max_relative_double_kernel3<<<max_grid, inst.predict_BS>>>(workspace.f_val_mult, inst.n_eq,\
+ 		max_relative_double_kernel3<<<max_grid, inst.predict_BS>>>(workspace.f_val, inst.n_eq,\
  				n_path_continuous, workspace.n_path, workspace.path_idx, \
  				workspace.max_f_val_gpu, workspace.max_f_val_last_gpu, workspace.r_max_f_val_gpu, workspace.max_x_gpu);
 

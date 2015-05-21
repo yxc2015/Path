@@ -328,7 +328,7 @@ bool path_multiple_test(Workspace& workspace_cpu, CPUInstHom& cpu_inst_hom, Para
 		for(int path_idx=start_idx; path_idx<n_path; path_idx++){
 			bool path_err = 0;
 			for(int x_idx=0; x_idx<dim; x_idx++){
-				if((path_success_cpu[path_idx]==true)){
+				//if((path_success_cpu[path_idx]==true)){
 					CT err_tmp = x_gpu[path_idx][x_idx]-cpu_sol[path_idx][x_idx];
 					if(abs(err_tmp.real) > err){
 						err = err_tmp.real;
@@ -340,7 +340,7 @@ bool path_multiple_test(Workspace& workspace_cpu, CPUInstHom& cpu_inst_hom, Para
 						path_err = true;
 						std::cout << path_idx << " " << x_idx << " " << err_tmp;
 					}
-				}
+				//}
 			}
 			if(path_err){
 				n_path_err++;

@@ -565,30 +565,30 @@ void eval_mult(GPUWorkspace& workspace, const GPUInst& inst){
 	//std::cout << "n_path_continuous = " << workspace.n_path_continuous << std::endl;
 	//std::cout << "n_path_all = " << n_path_all << std::endl;
 
-	//workspace.mon_mult = workspace.coef_mult + workspace.n_coef*n_path_all;
-	//workspace.sum_mult = workspace.mon_mult - workspace.n_constant*n_path_all;
+	//workspace.mon = workspace.coef + workspace.n_coef*n_path_all;
+	//workspace.sum = workspace.mon - workspace.n_constant*n_path_all;
 
 	//dim3 init_grid = get_grid(n_path, inst.coef_BS, 1);
 
 	//eval_mult_init_zero<<<init_grid, inst.coef_BS>>>(workspace.x_array, workspace.t_array, workspace.one_minor_t, \
-			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t_mult, \
+			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t, \
 			workspace.workspace_size, workspace.path_idx, workspace.x_t_idx_mult, n_path_all, inst.dim,\
-			workspace.matrix_mult, inst.n_sum_zero, inst.sum_zeros);
+			workspace.matrix, inst.n_sum_zero, inst.sum_zeros);
 
 	//eval_mult_init_zero2<<<init_grid, inst.coef_BS>>>(workspace.x_array, workspace.t_array, workspace.one_minor_t, \
-			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t_mult, \
+			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t, \
 			workspace.workspace_size, workspace.path_idx, workspace.x_t_idx_mult, n_path_all, inst.dim,\
-			workspace.matrix_mult, inst.n_sum_zero, inst.sum_zeros);
+			workspace.matrix, inst.n_sum_zero, inst.sum_zeros);
 
 
 	dim3 coef_grid = get_grid(n_path, inst.coef_BS, inst.n_coef);
-	//eval_coef_mult_kernel<<<coef_grid, inst.coef_BS>>>(workspace.coef_mult,\
-			inst.coef, n_path, workspace.newton_t_mult, workspace.one_minor_t_mult);
+	//eval_coef_mult_kernel<<<coef_grid, inst.coef_BS>>>(workspace.coef,\
+			inst.coef, n_path, workspace.newton_t_mult, workspace.one_minor_t);
 
-	eval_coef_mult_kernel2<<<coef_grid, inst.coef_BS>>>(workspace.coef_mult,\
-			inst.coef, n_path, n_path_all, workspace.newton_t_mult, workspace.one_minor_t_mult);
+	eval_coef_mult_kernel2<<<coef_grid, inst.coef_BS>>>(workspace.coef,\
+			inst.coef, n_path, n_path_all, workspace.newton_t_mult, workspace.one_minor_t);
 
-	/*eval_coef_mult_kernel<<<coef_grid, inst.coef_BS>>>(workspace.coef_mult,\
+	/*eval_coef_mult_kernel<<<coef_grid, inst.coef_BS>>>(workspace.coef,\
 			inst.coef, n_path, workspace.t_array, workspace.one_minor_t,\
 			workspace.workspace_size, workspace.x_t_idx_mult);*/
 
@@ -613,22 +613,22 @@ void eval_mult(GPUWorkspace& workspace, const GPUInst& inst){
 	dim3 mon_level_grid0 = get_grid(n_path, inst.mon_global_BS, inst.n_mon_level[0]);
 
 	//eval_mon_single_mult_kernel<<<mon_level_grid0, inst.mon_global_BS>>>( \
-			workspace.mon_mult, workspace.x_mult, workspace.coef_mult, inst.mon_pos_start, \
+			workspace.mon, workspace.x_mult, workspace.coef, inst.mon_pos_start, \
 			inst.mon_pos, n_path);
 
 	eval_mon_single_mult_kernel2<<<mon_level_grid0, inst.mon_global_BS>>>( \
-			workspace.mon_mult, workspace.x_mult, workspace.coef_mult, inst.mon_pos_start, \
+			workspace.mon, workspace.x_mult, workspace.coef, inst.mon_pos_start, \
 			inst.mon_pos, n_path, n_path_all);
 
 	//std::cout << "n_mon_global = " << inst.mon_global_BS << std::endl;
 	dim3 mon_level_grid = get_grid(n_path, inst.mon_global_BS, inst.n_mon_global);
 	//eval_mon_seq_mult_kernel<<<mon_level_grid, inst.mon_global_BS>>>( \
-			workspace.mon_mult, workspace.x_mult, workspace.coef_mult+inst.n_mon_level[0]*n_path, \
+			workspace.mon, workspace.x_mult, workspace.coef+inst.n_mon_level[0]*n_path, \
 			inst.mon_pos_start+inst.n_mon_level[0], inst.mon_pos, \
 			n_path);
 
 	eval_mon_seq_mult_kernel2<<<mon_level_grid, inst.mon_global_BS>>>( \
-			workspace.mon_mult, workspace.x_mult, workspace.coef_mult+inst.n_mon_level[0]*n_path_all, \
+			workspace.mon, workspace.x_mult, workspace.coef+inst.n_mon_level[0]*n_path_all, \
 			inst.mon_pos_start+inst.n_mon_level[0], inst.mon_pos, \
 			n_path, n_path_all);
 
@@ -648,13 +648,13 @@ void eval_mult(GPUWorkspace& workspace, const GPUInst& inst){
 	//std::cout << "n_path = " << n_path << std::endl;
 	//std::cout << "inst.n_sum = " << inst.n_sum << std::endl;
 	dim3 sum_grid = get_grid(n_path,inst.sum_BS,inst.n_sum);
-	eval_sum_seq_mult_kernel2<<<sum_grid, inst.sum_BS>>>(workspace.matrix_mult, \
-			workspace.sum_mult, inst.sum_pos, inst.sum_pos_start, n_path, n_path_all);
+	eval_sum_seq_mult_kernel2<<<sum_grid, inst.sum_BS>>>(workspace.matrix, \
+			workspace.sum, inst.sum_pos, inst.sum_pos_start, n_path, n_path_all);
 
 	/*int sum_trunk = 16;
 	dim3 sum_grid2 = get_grid(n_path,16,(inst.n_sum-1)/sum_trunk+1);
-	eval_sum_seq_mult_transpose_kernel<<<sum_grid2, 16>>>(workspace.matrix_mult, \
-			workspace.sum_mult, inst.sum_pos, inst.sum_pos_start, n_path, inst.n_sum, sum_trunk);*/
+	eval_sum_seq_mult_transpose_kernel<<<sum_grid2, 16>>>(workspace.matrix, \
+			workspace.sum, inst.sum_pos, inst.sum_pos_start, n_path, inst.n_sum, sum_trunk);*/
 
 	/*std::cout << "Matrix Part" << std::endl;
 	CT* gpu_matrix_mult = workspace.get_matrix_mult();
@@ -675,13 +675,13 @@ void eval_mult(GPUWorkspace& workspace, const GPUInst& inst){
 	/*int matrix_dim = (inst.n_eq+1)*inst.dim;
 
 	dim3 end_grid0 = get_grid(n_path, 32, 1);
-	eval_mult_end<<<end_grid0, 32>>>(workspace.matrix_mult, workspace.matrix, workspace.n_matrix,\
+	eval_mult_end<<<end_grid0, 32>>>(workspace.matrix, workspace.matrix, workspace.n_matrix,\
 			workspace.workspace_size, workspace.path_idx, n_path);*/
 	int transpose_trunk = 16;
 	dim3 end_grid = get_grid(n_path, 16, (workspace.n_matrix-1)/transpose_trunk+1);
-	/*eval_mult_end<<<end_grid, 16>>>(workspace.matrix_mult, workspace.matrix, workspace.n_matrix,\
+	/*eval_mult_end<<<end_grid, 16>>>(workspace.matrix, workspace.matrix, workspace.n_matrix,\
 			workspace.workspace_size, workspace.path_idx, n_path, transpose_trunk);*/
-	eval_mult_end3<<<end_grid, 16>>>(workspace.matrix_mult, workspace.matrix_mult_horizontal, workspace.n_matrix,\
+	eval_mult_end3<<<end_grid, 16>>>(workspace.matrix, workspace.matrix_horizontal_mult, workspace.n_matrix,\
 			workspace.n_matrix, workspace.path_idx, n_path, n_path_all, transpose_trunk);
 }
 
@@ -764,20 +764,20 @@ void eval_mult_eq(GPUWorkspace& workspace, const GPUInst& inst){
 	dim3 init_grid = get_grid(n_path, inst.coef_BS, 1);
 
 	eval_mult_init<<<init_grid, inst.coef_BS>>>(workspace.x_array, workspace.t_array, workspace.one_minor_t, \
-			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t_mult, \
+			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t, \
 			workspace.workspace_size, workspace.path_idx, workspace.x_t_idx_mult, n_path, inst.dim);
 
 	dim3 eq_grid = get_grid(n_path, eval_mult_eq_BS, inst.n_eq);
-	eval_mult_eq<<<eq_grid, eval_mult_eq_BS>>>(workspace.matrix_mult, workspace.x_mult, workspace.workspace_eq, inst.eq_pos_start, \
-			inst.mon_pos_start_eq, inst.coef_eq, workspace.t_mult, workspace.one_minor_t_mult,  inst.mon_pos_eq,\
+	eval_mult_eq<<<eq_grid, eval_mult_eq_BS>>>(workspace.matrix, workspace.x_mult, workspace.workspace_eq, inst.eq_pos_start, \
+			inst.mon_pos_start_eq, inst.coef_eq, workspace.t_mult, workspace.one_minor_t,  inst.mon_pos_eq,\
 			n_path, inst.dim, inst.n_eq);
 
 	int transpose_trunk = 16;
 	dim3 end_grid = get_grid(n_path, 16, (workspace.n_matrix-1)/transpose_trunk+1);
-	/*eval_mult_end<<<end_grid, 16>>>(workspace.matrix_mult, workspace.matrix, workspace.n_matrix,\
+	/*eval_mult_end<<<end_grid, 16>>>(workspace.matrix, workspace.matrix, workspace.n_matrix,\
 			workspace.workspace_size, workspace.path_idx, n_path, transpose_trunk);*/
 
-	eval_mult_end2<<<end_grid, 16>>>(workspace.matrix_mult, workspace.matrix, workspace.n_matrix,\
+	eval_mult_end2<<<end_grid, 16>>>(workspace.matrix, workspace.matrix, workspace.n_matrix,\
 			workspace.workspace_size, workspace.path_idx, n_path, transpose_trunk);
 }
 
@@ -943,22 +943,22 @@ void eval_eq(GPUWorkspace& workspace, const GPUInst& inst){
 	int n_path = workspace.n_path_continuous;
 
 
-	/*workspace.mon_mult = workspace.coef_mult + workspace.n_coef*n_path;
-	workspace.sum_mult = workspace.mon_mult - workspace.n_constant*n_path;
+	/*workspace.mon = workspace.coef + workspace.n_coef*n_path;
+	workspace.sum = workspace.mon - workspace.n_constant*n_path;
 
 	dim3 init_grid = get_grid(n_path, inst.coef_BS, 1);
 
 	eval_mult_init_zero<<<init_grid, inst.coef_BS>>>(workspace.x_array, workspace.t_array, workspace.one_minor_t, \
-			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t_mult, \
+			workspace.x_mult, workspace.newton_t_mult, workspace.one_minor_t, \
 			workspace.workspace_size, workspace.path_idx, workspace.x_t_idx_mult, n_path, inst.dim,\
-			workspace.matrix_mult, inst.n_sum_zero, inst.sum_zeros);
+			workspace.matrix, inst.n_sum_zero, inst.sum_zeros);
 
 
 	dim3 coef_grid = get_grid(n_path, inst.coef_BS, inst.n_coef);
-	eval_coef_mult_kernel<<<coef_grid, inst.coef_BS>>>(workspace.coef_mult,\
-			inst.coef, n_path, workspace.newton_t_mult, workspace.one_minor_t_mult);*/
+	eval_coef_mult_kernel<<<coef_grid, inst.coef_BS>>>(workspace.coef,\
+			inst.coef, n_path, workspace.newton_t_mult, workspace.one_minor_t);*/
 
-	/*eval_coef_mult_kernel<<<coef_grid, inst.coef_BS>>>(workspace.coef_mult,\
+	/*eval_coef_mult_kernel<<<coef_grid, inst.coef_BS>>>(workspace.coef,\
 			inst.coef, n_path, workspace.t_array, workspace.one_minor_t,\
 			workspace.workspace_size, workspace.x_t_idx_mult);*/
 
@@ -980,12 +980,12 @@ void eval_eq(GPUWorkspace& workspace, const GPUInst& inst){
 	std::cout << "workspace.n_matrix = " << workspace.n_matrix << std::endl;
 
 	/*eval_eq_kernel0<<<grid_eq, 10>>>( \
-			workspace.mon_mult, workspace.x_mult2, workspace.matrix_mult, inst.mon_pos_start, \
+			workspace.mon, workspace.x_mult2, workspace.matrix, inst.mon_pos_start, \
 			inst.mon_pos, workspace.workspace_size, workspace.n_matrix, inst.dim);*/
 
 	// x_mult = x_mult_horizontal
 	eval_eq_kernel<<<grid_eq, 30>>>( \
-				workspace.mon_mult, workspace.x_mult, workspace.matrix_mult, inst.mon_pos_start_block, \
+				workspace.mon, workspace.x_mult, workspace.matrix, inst.mon_pos_start_block, \
 				inst.mon_pos_block, workspace.workspace_size, workspace.n_matrix, inst.dim, 3);
 
 	/*std::cout << "workspace.dim = " << workspace.dim
@@ -1015,20 +1015,20 @@ void eval_eq(GPUWorkspace& workspace, const GPUInst& inst){
 
 	/*dim3 mon_level_grid = get_grid(n_path, inst.mon_global_BS, inst.n_mon_global);
 	eval_mon_seq_mult_kernel<<<mon_level_grid, inst.mon_global_BS>>>( \
-			workspace.mon_mult, workspace.x_mult, workspace.coef_mult+inst.n_mon_level[0]*n_path, \
+			workspace.mon, workspace.x_mult, workspace.coef+inst.n_mon_level[0]*n_path, \
 			inst.mon_pos_start+inst.n_mon_level[0], inst.mon_pos, \
 			n_path, workspace.workspace_size);
 
 	//std::cout << "n_path = " << n_path << std::endl;
 	std::cout << "inst.n_sum = " << inst.n_sum << std::endl;
 	dim3 sum_grid = get_grid(n_path,inst.sum_BS,inst.n_sum);
-	eval_sum_seq_mult_kernel<<<sum_grid, inst.sum_BS>>>(workspace.matrix_mult, \
-			workspace.sum_mult, inst.sum_pos, inst.sum_pos_start, n_path);*/
+	eval_sum_seq_mult_kernel<<<sum_grid, inst.sum_BS>>>(workspace.matrix, \
+			workspace.sum, inst.sum_pos, inst.sum_pos_start, n_path);*/
 
 	/*int sum_trunk = 16;
 	dim3 sum_grid2 = get_grid(n_path,16,(inst.n_sum-1)/sum_trunk+1);
-	eval_sum_seq_mult_transpose_kernel<<<sum_grid2, 16>>>(workspace.matrix_mult, \
-			workspace.sum_mult, inst.sum_pos, inst.sum_pos_start, n_path, inst.n_sum, sum_trunk);*/
+	eval_sum_seq_mult_transpose_kernel<<<sum_grid2, 16>>>(workspace.matrix, \
+			workspace.sum, inst.sum_pos, inst.sum_pos_start, n_path, inst.n_sum, sum_trunk);*/
 
 	/*std::cout << "Matrix Part" << std::endl;
 	CT* gpu_matrix_mult = workspace.get_matrix_mult();
@@ -1046,15 +1046,15 @@ void eval_eq(GPUWorkspace& workspace, const GPUInst& inst){
 	/*int matrix_dim = (inst.n_eq+1)*inst.dim;
 
 	dim3 end_grid0 = get_grid(n_path, 32, 1);
-	eval_mult_end<<<end_grid0, 32>>>(workspace.matrix_mult, workspace.matrix, workspace.n_matrix,\
+	eval_mult_end<<<end_grid0, 32>>>(workspace.matrix, workspace.matrix, workspace.n_matrix,\
 			workspace.workspace_size, workspace.path_idx, n_path);*/
 
 	/*int transpose_trunk = 16;
 	dim3 end_grid = get_grid(n_path, 16, (workspace.n_matrix-1)/transpose_trunk+1);*/
 
-	/*eval_mult_end<<<end_grid, 16>>>(workspace.matrix_mult, workspace.matrix, workspace.n_matrix,\
+	/*eval_mult_end<<<end_grid, 16>>>(workspace.matrix, workspace.matrix, workspace.n_matrix,\
 			workspace.workspace_size, workspace.path_idx, n_path, transpose_trunk);*/
 
-	/*eval_mult_end2<<<end_grid, 16>>>(workspace.matrix_mult, workspace.matrix, workspace.n_matrix,\
+	/*eval_mult_end2<<<end_grid, 16>>>(workspace.matrix, workspace.matrix, workspace.n_matrix,\
 			workspace.workspace_size, workspace.path_idx, n_path, transpose_trunk);*/
 }

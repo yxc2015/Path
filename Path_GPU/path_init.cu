@@ -52,8 +52,7 @@ __global__ void path_mult_init_kernel(GT* t_mult, GT* t_last_mult, GT* delta_t_m
 		GT* t = t_array_mult + (n_predictor+1)*path_idx;
 		*t =  GT(0.0,0.0);
 		*(t+1) = t_mult[path_idx];
-		GT* one_minor_t = one_minor_t_mult + workspace_size*path_idx;
-		*one_minor_t = (*alpha)*(GT(1.0,0) - t_mult[path_idx]);
+		one_minor_t_mult[path_idx] = (*alpha)*(GT(1.0,0) - t_mult[path_idx]);
 
 		end_range[path_idx] = 0;
 		n_success[path_idx] = 0;

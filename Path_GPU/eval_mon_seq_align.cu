@@ -10,6 +10,7 @@ int* x_t_idx, int dim, int* path_idx_mult);
 
 void eval_mon_seq_align(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
 	int n_path = workspace.n_path_continuous;
+	std::cout << "inst.n_mon_level[0] = " << inst.n_mon_level[0] << std::endl;
 	dim3 mon_single_grid = get_grid(inst.n_mon_level[0],inst.mon_level0_BS,n_path);
 
 	eval_mon_single_kernel<<<mon_single_grid, inst.mon_level0_BS>>>( \
