@@ -8,19 +8,20 @@ __global__ void eval_mon_seq_align_kernel(GT* workspace_mon, GT* x, GT* workspac
 int* mon_pos_start_block, unsigned short* mon_pos_block, int n_mon, int workspace_size, \
 int* x_t_idx, int dim, int* path_idx_mult);
 
-void eval_mon_seq_align(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
+void eval_mon_seq_align(GPUWorkspace& workspace, const GPUInst& inst){
 	int n_path = workspace.n_path_continuous;
-	std::cout << "inst.n_mon_level[0] = " << inst.n_mon_level[0] << std::endl;
-	dim3 mon_single_grid = get_grid(inst.n_mon_level[0],inst.mon_level0_BS,n_path);
+	//std::cout << "inst.n_mon_level[0] = " << inst.n_mon_level[0] << std::endl;
+	//std::cout << "n_mon_single = " << inst.n_mon_single << std::endl;
+	dim3 mon_single_grid = get_grid(inst.n_mon_single,inst.mon_level0_BS,n_path);
 
 	eval_mon_single_kernel<<<mon_single_grid, inst.mon_level0_BS>>>( \
 			workspace.mon, workspace.x_array, workspace.coef, inst.mon_pos_start, \
-			inst.mon_pos, inst.n_mon_level[0], workspace.workspace_size, workspace.x_t_idx_mult, inst.dim, workspace.path_idx);
+			inst.mon_pos_block, inst.n_mon_single, workspace.workspace_size, workspace.x_t_idx_mult, inst.dim, workspace.path_idx);
 
 	dim3 mon_block_grid = get_grid(inst.n_mon_block, BS_Mon_Align, n_path);
 	//int NB_mon = (inst.n_mon_block-1)/BS_Mon_Align + 1;
 	eval_mon_seq_align_kernel<<<mon_block_grid, BS_Mon_Align>>>( \
-			workspace.mon+inst.n_mon_level[0]*2, workspace.x_array, workspace.coef + inst.n_mon_level[0], \
+			workspace.mon, workspace.x_array, workspace.coef + inst.n_mon_single, \
 			inst.mon_pos_start_block, inst.mon_pos_block, inst.n_mon_block, workspace.workspace_size, \
 			workspace.x_t_idx_mult, inst.dim, workspace.path_idx);
 

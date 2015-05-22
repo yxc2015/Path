@@ -1225,7 +1225,11 @@ bool GPU_Newton(CPUInstHom& hom, Parameter path_parameter, CT* cpu_sol0, CT cpu_
 	cuda_set();
 
 	GPUInst inst(hom, n_path);
-	GPUWorkspace workspace(inst.n_workspace, inst.mon_pos_size, inst.n_coef, inst.n_constant, inst.n_eq, inst.dim, path_parameter.n_predictor, inst.alpha);
+	int mon_pos_size = hom.CPU_inst_hom_mon.mon_pos_size;
+	if(MON_EVAL_METHOD == 1){
+		mon_pos_size = hom.CPU_inst_hom_block.mon_pos_block_size + inst.n_mon_level[0]*2;
+	}
+	GPUWorkspace workspace(mon_pos_size, inst.n_coef, inst.n_constant, inst.n_eq, inst.dim, path_parameter.n_predictor, inst.alpha);
 
 	workspace.update_x_t_value(cpu_sol0, cpu_t);
 

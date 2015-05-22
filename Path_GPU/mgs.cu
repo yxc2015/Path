@@ -11,7 +11,7 @@ int GPU_MGS(const CPUInstHom& hom, CT*& sol_gpu, CT*& matrix_gpu_q,  CT*& matrix
 	// CUDA configuration
 	cuda_set();
 
-	GPUWorkspace workspace(0, 0, 0, 0, hom.n_eq, hom.dim, n_path);
+	GPUWorkspace workspace(0, 0, 0, hom.n_eq, hom.dim, n_predictor);
 
 	workspace.init_V_value(V);
 
@@ -47,19 +47,17 @@ int GPU_MGS(const CPUInstHom& hom, CT*& sol_gpu, CT*& matrix_gpu_q,  CT*& matrix
 	return 0;
 }
 
-int GPU_MGS(const CPUInstHom& hom, CT**& sol_gpu, CT**& matrix_gpu_q,  CT**& matrix_gpu_r, int n_predictor, CT* V, int n_path) {
+int GPU_MGS_Mult(const CPUInstHom& hom, CT**& sol_gpu, CT**& matrix_gpu_q,  CT**& matrix_gpu_r, int n_predictor, CT* V, int n_path) {
 	cout << "GPU MGS" << endl;
 
 	// CUDA configuration
 	cuda_set();
 
-	GPUWorkspace workspace(0, 0, 0, 0, hom.n_eq, hom.dim, 0, 0, n_path);
+	GPUWorkspace workspace(0, 0, 0, hom.n_eq, hom.dim, 0, 0, n_path);
 
 	std::cout << "n_path = " << n_path << std::endl;
 
-	for(int path_idx=0; path_idx<n_path; path_idx++){
-		workspace.init_V_value(V+path_idx*hom.n_eq*(hom.dim+1), path_idx);
-	}
+	workspace.init_V_value(V);
 
 	std::cout << "workspace.n_path = " << workspace.n_path << std::endl;
 
@@ -77,8 +75,6 @@ int GPU_MGS(const CPUInstHom& hom, CT**& sol_gpu, CT**& matrix_gpu_q,  CT**& mat
 	else{
 		mgs_large_block(workspace.V, workspace.R, workspace.P, workspace.sol, hom.n_eq, hom.dim+1);
 	}
-	//mgs_large_orig(workspace.V, workspace.R, workspace.sol, hom.n_eq, hom.dim+1);
-	//mgs_large_old(workspace.V, workspace.R, workspace.sol, hom.n_eq, hom.dim+1);
 
 	sol_gpu[0] = workspace.get_sol(0);
 

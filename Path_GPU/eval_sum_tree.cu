@@ -1,7 +1,7 @@
 #include "eval_sum_seq.cu"
 
 // Sum block level 0
-__global__ void eval_sum_tree_single_kernel(GT* r_matrix_d, GT* workspace_d, int* sum_array_d, int* sum_start_d, int n_sum, int n_sys){
+__global__ void eval_sum_tree_single_kernel(GT* r_matrix_d, GT* workspace_d, int* sum_array_d, int* sum_start_d, int n_sum){
     int idx = blockIdx.x*blockDim.x + threadIdx.x;
     //int sys_idx = blockIdx.z;
     //GT* workspace_d_tmp = workspace_d + sys_idx*workspace_size_int;
@@ -15,7 +15,7 @@ __global__ void eval_sum_tree_single_kernel(GT* r_matrix_d, GT* workspace_d, int
 }
 
 // Sum block, mulitithread gpu sum, sum-2
-__global__ void eval_sum_tree_2_kernel(GT* r_matrix_d, GT* workspace_d, int* sum_array_d, int* sum_start_d, int n_sum, int n_sys){
+__global__ void eval_sum_tree_2_kernel(GT* r_matrix_d, GT* workspace_d, int* sum_array_d, int* sum_start_d, int n_sum){
     __shared__ GT x_sh[16];
     int tidx = threadIdx.x;
     int bidx = (gridDim.x*blockIdx.y+blockIdx.x)*blockDim.x;
@@ -57,7 +57,7 @@ __global__ void eval_sum_tree_2_kernel(GT* r_matrix_d, GT* workspace_d, int* sum
 
 // Sum block, mulitithread gpu sum, sum-2, sum-4, sum-8
 template <unsigned int n_th>
-__global__ void eval_sum_tree_kernel(GT* r_matrix_d, GT* workspace_d, int* sum_array_d, int* sum_start_d, int n_sum, int n_sys){
+__global__ void eval_sum_tree_kernel(GT* r_matrix_d, GT* workspace_d, int* sum_array_d, int* sum_start_d, int n_sum){
     __shared__ GT x_sh[32];
     int tidx = threadIdx.x;
     int bidx = (gridDim.x*blockIdx.y+blockIdx.x)*blockDim.x;
@@ -124,7 +124,7 @@ __global__ void eval_sum_tree_kernel(GT* r_matrix_d, GT* workspace_d, int* sum_a
 }
 
 
-void eval_sum_tree(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
+void eval_sum_tree(GPUWorkspace& workspace, const GPUInst& inst){
 	int max_level = 2;
 	// d pieri 103 4
 	// dd pieri 103 4
@@ -166,37 +166,37 @@ void eval_sum_tree(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
 		if(i== 0 && n_sum_new > 0){
 			if(max_level > 0){
 				eval_sum_tree_single_kernel<<<sum_grid, inst.sum_BS>>>(workspace.matrix,
-						workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new, n_sys);
+						workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new);
 			}
 			else{
 				eval_sum_seq_kernel<<<inst.sum_grid, inst.sum_BS>>>(workspace.matrix,
-					   workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new, n_sys);
+					   workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new);
 			}
 		}
 
 		if(i== 1 && n_sum_new > 0){
 			eval_sum_tree_2_kernel<<<sum_grid, inst.sum_BS>>>(workspace.matrix,
-					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new, n_sys);
+					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new);
 		}
 
 		if(i == 2 && n_sum_new > 0){
 			eval_sum_tree_kernel<4><<<sum_grid, inst.sum_BS>>>(workspace.matrix,\
-					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new, n_sys);
+					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new);
 		}
 
 		if(i == 3 && n_sum_new > 0){
 			eval_sum_tree_kernel<8><<<sum_grid, inst.sum_BS>>>(workspace.matrix,\
-					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new, n_sys);
+					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new);
 		}
 
 		if(i == 4 && n_sum_new > 0){
 			eval_sum_tree_kernel<16><<<sum_grid, inst.sum_BS>>>(workspace.matrix,\
-					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new, n_sys);
+					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new);
 		}
 
 		if(i == 5 && n_sum_new > 0){
 			eval_sum_tree_kernel<32><<<sum_grid, inst.sum_BS>>>(workspace.matrix,\
-					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new, n_sys);
+					workspace.sum, inst.sum_pos, sum_start_tmp, n_sum_new);
 		}
 
 		/*if(i == 6 && n_sum_new > 0){

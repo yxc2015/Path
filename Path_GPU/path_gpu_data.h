@@ -43,8 +43,6 @@ public:
 	CT alpha;
 	GT* alpha_gpu;
 
-	GT* all;
-
 	// int arrays
 	int* int_arrays;
 	int* x_t_idx_mult;
@@ -101,10 +99,12 @@ public:
 	// To be removed
 
 	int workspace_size;
-	int n;
-	size_t size_all;
 
-	GPUWorkspace(int n_eval_size, int mon_pos_size, int n_coef, int n_constant, int n_eq, int dim, int n_predictor, CT alpha=CT(1,0), int n_path=1){
+	//GT* all;
+	//int n;
+	//size_t size_all;
+
+	GPUWorkspace(int mon_pos_size, int n_coef, int n_constant, int n_eq, int dim, int n_predictor, CT alpha=CT(1,0), int n_path=1){
 		this->mon_pos_size = mon_pos_size;
 		this->dim = dim;
 		this->n_eq = n_eq;
@@ -215,18 +215,17 @@ public:
 
 		// To be removed
 
-		n = mon_pos_size+n_coef;
+		//n = mon_pos_size+n_coef;
 
-		std::cout << "n = " << n \
-				  << " mon_pos_size = " << mon_pos_size \
+		std::cout << " mon_pos_size = " << mon_pos_size \
 				  << " n_coef = " << n_coef << std::endl;
 
-		size_all = n*sizeof(GT);
-		all = NULL;
+		//size_all = n*sizeof(GT);
+		//all = NULL;
 		//cudaMalloc((void **)&all, size_all);
 
-		workspace_size = n;
-		workspace_size += n_matrix;
+
+		workspace_size = n_matrix;
 		workspace_size += n_matrix_R;
 		workspace_size += dim;
 	}
@@ -240,7 +239,7 @@ public:
 
 	void init_matrix(int dim, int n_eq);
 
-	void init_V_value(CT* V_cpu, int sys_idx=0);
+	void init_V_value(CT* V_cpu);
 
 	void init_x_t(int dim, int n_predictor);
 
@@ -276,11 +275,11 @@ public:
 
 	void update_x_t(CT* cpu_sol0, CT cpu_t);
 
-	CT* get_workspace();
-
 	CT* get_matrix();
 
 	CT* get_workspace(int sys_idx);
+
+	CT* get_workspace();
 
 	CT* get_matrix(int sys_idx);
 
@@ -313,8 +312,6 @@ public:
 	void print_x_array();
 
 	void print_t_array();
-
-	CT* get_workspace_mult();
 
 	CT* get_coef_mult();
 
@@ -385,6 +382,8 @@ public:
 	int NB_mon_block;
 	int* mon_pos_start_block;
 	unsigned short* mon_pos_block;
+	int n_mon_single;
+	unsigned short* mon_single_pos_block;
 
 
 	/**** Sum instruction ****/
@@ -430,11 +429,12 @@ public:
 		this->n_path = n_path;
 		init_predict();
 		init_coef(cpu_inst.CPU_inst_hom_coef);
-		init_mon(cpu_inst.CPU_inst_hom_mon, cpu_inst.CPU_inst_hom_block);
 		if(MON_EVAL_METHOD == 1){
+			init_mon(cpu_inst.CPU_inst_hom_block);
 			init_sum(cpu_inst.CPU_inst_hom_sum_block);
 		}
 		else{
+			init_mon(cpu_inst.CPU_inst_hom_mon);
 			init_sum(cpu_inst.CPU_inst_hom_sum);
 		}
 		init_workspace(cpu_inst);
@@ -461,7 +461,9 @@ public:
 
 	void init_coef(const CPUInstHomCoef& cpu_inst_coef);
 
-	void init_mon(const CPUInstHomMon& cpu_inst_mon, const CPUInstHomMonBlock& cpu_inst_mon_block);
+	void init_mon(const CPUInstHomMon& cpu_inst_mon);
+
+	void init_mon(const CPUInstHomMonBlock& cpu_inst_mon_block);
 
 	void init_sum(const CPUInstHomSumBlock& cpu_inst_sum);
 

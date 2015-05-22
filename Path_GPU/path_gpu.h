@@ -19,7 +19,7 @@ int GPU_Eval(const CPUInstHom& hom, CT* cpu_sol0, CT* cpu_t, CT**& gpu_workspace
 
 int GPU_Predict(const CPUInstHom& hom, CT*& x_gpu, int n_predictor, CT cpu_t, int n_sys = 1);
 
-int GPU_MGS(const CPUInstHom& hom, CT**& sol_gpu, CT**& matrix_gpu_q, CT**& matrix_gpu_r, int n_predictor, CT* V, int n_sys=1);
+int GPU_MGS_Mult(const CPUInstHom& hom, CT**& sol_gpu, CT**& matrix_gpu_q, CT**& matrix_gpu_r, int n_predictor, CT* V, int n_sys=1);
 
 int GPU_MGS(const CPUInstHom& hom, CT*& sol_gpu, CT*& matrix_gpu_q, CT*& matrix_gpu_r, int n_predictor, CT* V, int n_sys=1);
 

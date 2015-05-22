@@ -6,12 +6,12 @@
 
 //void eval_mon_tree(GPUWorkspace& workspace, const GPUInst& inst, int n_sys);
 
-void eval_mon(GPUWorkspace& workspace, const GPUInst& inst, int n_sys){
+void eval_mon(GPUWorkspace& workspace, const GPUInst& inst){
 	if(MON_EVAL_METHOD == 0){
-		eval_mon_seq(workspace, inst, n_sys);
+		eval_mon_seq(workspace, inst);
 	}
 	else if(MON_EVAL_METHOD == 1){
-		eval_mon_seq_align(workspace, inst, n_sys);
+		eval_mon_seq_align(workspace, inst);
 	}
 	//else{
 	//	eval_mon_tree(workspace, inst, n_sys);

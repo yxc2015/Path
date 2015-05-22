@@ -39,13 +39,13 @@ void GPUWorkspace::init_matrix(int dim, int n_eq){
 	cudaMalloc((void**)&P, row_block*matrix_block_pivot_col*cols*sizeof(GT));
 }
 
-void GPUWorkspace::init_V_value(CT* V_cpu, int path_idx){
-	GT* V_host = (GT*)malloc(n_matrix*sizeof(GT));
+void GPUWorkspace::init_V_value(CT* V_cpu){
+	GT* V_host = (GT*)malloc(n_path*n_matrix*sizeof(GT));
 	//std::cout << "----------------n_eq = " << n_eq << " dim = " << dim << std::endl;
-	for(int i=0; i<n_eq*(dim+1); i++){
+	for(int i=0; i<n_path*n_matrix; i++){
     	comp1_qd2gqd(&V_cpu[i],&V_host[i]);
 	}
-	cudaMemcpy(V+path_idx*workspace_size, V_host, n_matrix*sizeof(GT), cudaMemcpyHostToDevice);
+	cudaMemcpy(V, V_host, n_path*n_matrix*sizeof(GT), cudaMemcpyHostToDevice);
 }
 
 void GPUWorkspace::init_x_t(int dim, int n_predictor){
@@ -310,22 +310,8 @@ void GPUWorkspace::update_x_t(CT* cpu_sol0, CT cpu_t){
 }
 
 CT* GPUWorkspace::get_workspace(){
-    GT* host_workspace = (GT*)malloc(size_all);
-	cudaMemcpy(host_workspace, all, size_all, cudaMemcpyDeviceToHost);
-	//std::cout << "****n = " << n << std::endl;
-	CT* gpu_workspace = (CT*)malloc(size_all);
-    for(int i=0; i<n; i++){
-    	comp1_gqd2qd(&host_workspace[i], &gpu_workspace[i]);
-    }
-
-    free(host_workspace);
-    return gpu_workspace;
-}
-
-CT* GPUWorkspace::get_workspace_mult(){
     GT* host_workspace = (GT*)malloc(size_GT_arrays);
 	cudaMemcpy(host_workspace, GT_arrays, size_GT_arrays, cudaMemcpyDeviceToHost);
-	//std::cout << "****n = " << n << std::endl;
 	CT* gpu_workspace = (CT*)malloc(size_GT_arrays);
 	for(int i=0; i<n_GT_arrays; i++){
 		comp1_gqd2qd(&host_workspace[i], &gpu_workspace[i]);
@@ -339,7 +325,6 @@ CT* GPUWorkspace::get_sol_mult(){
 	size_t size_sol_mult = n_path*dim*sizeof(GT);
     GT* host_sol_mult = (GT*)malloc(size_sol_mult);
 	cudaMemcpy(host_sol_mult, sol, size_sol_mult, cudaMemcpyDeviceToHost);
-	//std::cout << "****n = " << n << std::endl;
 	CT* gpu_sol_mult = (CT*)malloc(size_sol_mult);
 	for(int i=0; i<dim*n_path; i++){
 		comp1_gqd2qd(&host_sol_mult[i], &gpu_sol_mult[i]);
@@ -380,7 +365,7 @@ CT* GPUWorkspace::get_mon_mult(){
 	cudaMemcpy(mon_mult_host, mon, mon_mult_size, cudaMemcpyDeviceToHost);
 
 	CT* mon_mult_gpu = (CT*)malloc(mon_mult_size);
-    for(int i=0; i<(n-n_constant)*n_path; i++){
+    for(int i=0; i<mon_pos_size*n_path; i++){
     	comp1_gqd2qd(&mon_mult_host[i], &mon_mult_gpu[i]);
     }
 
@@ -406,7 +391,6 @@ CT* GPUWorkspace::get_workspace(int path_idx){
 	int n_arrays =  n_coef+mon_pos_size;
     GT* host_workspace = (GT*)malloc(n_arrays*sizeof(GT));
 	cudaMemcpy(host_workspace, coef, (n_arrays)*sizeof(GT), cudaMemcpyDeviceToHost);
-	//std::cout << "****n = " << n << std::endl;
 	CT* gpu_workspace = (CT*)malloc((n_arrays)*sizeof(GT));
     for(int i=0; i<n_arrays; i++) comp1_gqd2qd(&host_workspace[i], &gpu_workspace[i]);
 
@@ -416,7 +400,7 @@ CT* GPUWorkspace::get_workspace(int path_idx){
 
 CT* GPUWorkspace::get_matrix(int path_idx){
     GT* host_matrix = (GT*)malloc(n_matrix*sizeof(GT));
-	cudaMemcpy(host_matrix, matrix+path_idx*workspace_size, n_matrix*sizeof(GT), cudaMemcpyDeviceToHost);
+	cudaMemcpy(host_matrix, matrix+path_idx*n_matrix, n_matrix*sizeof(GT), cudaMemcpyDeviceToHost);
 
 	CT* gpu_matrix = (CT*)malloc(n_matrix*sizeof(GT));
     for(int i=0; i<n_matrix; i++) comp1_gqd2qd(&host_matrix[i], &gpu_matrix[i]);
@@ -427,10 +411,10 @@ CT* GPUWorkspace::get_matrix(int path_idx){
 
 CT* GPUWorkspace::get_matrix_r(int path_idx){
     GT* host_matrix_r = (GT*)malloc(n_matrix_R*sizeof(GT));
-	cudaMemcpy(host_matrix_r, R+path_idx*workspace_size, n_matrix_R*sizeof(GT), cudaMemcpyDeviceToHost);
+	cudaMemcpy(host_matrix_r, R+path_idx*n_matrix_R, n_matrix_R*sizeof(GT), cudaMemcpyDeviceToHost);
 
 	CT* gpu_matrix_r = (CT*)malloc(n_matrix_R*sizeof(GT));
-    for(int i=0; i<(dim + 1)*(dim + 1); i++)
+    for(int i=0; i<n_matrix_R; i++)
     	comp1_gqd2qd(&host_matrix_r[i], &gpu_matrix_r[i]);
 
     free(host_matrix_r);
@@ -504,7 +488,7 @@ CT** GPUWorkspace::get_x_all(){
 
 	for(int path_idx=0; path_idx<n_path; path_idx++){
 		std::cout << "x_t_idx_mult_host[path_idx] = " << x_t_idx_mult_host[path_idx] << std::endl;
-		cudaMemcpy(x_host, x_array+path_idx*workspace_size+dim*x_t_idx_mult_host[path_idx], dim*sizeof(GT), cudaMemcpyDeviceToHost);
+		cudaMemcpy(x_host, x_array+path_idx*dim*n_array+dim*x_t_idx_mult_host[path_idx], dim*sizeof(GT), cudaMemcpyDeviceToHost);
 		CT* x_cpu = (CT*)malloc(dim*sizeof(GT));
 		for(int i=0; i<dim; i++){
 			comp1_gqd2qd(&x_host[i], &x_cpu[i]);
@@ -528,7 +512,7 @@ CT** GPUWorkspace::get_x_last_all(){
 
 	for(int path_idx=0; path_idx<n_path; path_idx++){
 		//std::cout << "x_t_idx_mult_host[path_idx] = " << x_t_idx_mult_host[path_idx] << std::endl;
-		cudaMemcpy(x_host, x_array+path_idx*workspace_size+dim*((x_t_idx_mult_host[path_idx]+n_predictor)%(n_predictor+1)), dim*sizeof(GT), cudaMemcpyDeviceToHost);
+		cudaMemcpy(x_host, x_array+path_idx*dim*n_array+dim*((x_t_idx_mult_host[path_idx]+n_predictor)%(n_predictor+1)), dim*sizeof(GT), cudaMemcpyDeviceToHost);
 		CT* x_cpu = (CT*)malloc(dim*sizeof(GT));
 		for(int i=0; i<dim; i++){
 			comp1_gqd2qd(&x_host[i], &x_cpu[i]);
@@ -680,7 +664,7 @@ CT* GPUWorkspace::get_x_last(){
 
 CT* GPUWorkspace::get_sol(int path_idx){
     GT* sol_host = (GT*)malloc(dim*sizeof(GT));
-	cudaMemcpy(sol_host, sol+path_idx*workspace_size, dim*sizeof(GT), cudaMemcpyDeviceToHost);
+	cudaMemcpy(sol_host, sol+path_idx*dim, dim*sizeof(GT), cudaMemcpyDeviceToHost);
 
 	CT* sol_cpu = (CT*)malloc(dim*sizeof(GT));
     for(int i=0; i<dim; i++){
@@ -769,12 +753,25 @@ void GPUInst::init_coef(const CPUInstHomCoef& cpu_inst_coef){
     alpha = cpu_inst_coef.alpha;
 }
 
-void GPUInst::init_mon(const CPUInstHomMon& cpu_inst_mon, const CPUInstHomMonBlock& cpu_inst_mon_block){
+
+void GPUInst::init_mon(const CPUInstHomMonBlock& cpu_inst_mon_block){
 	n_mon_block = cpu_inst_mon_block.n_mon;
 	mon_block_grid = get_grid(n_mon_block, BS_Mon_Align, n_path);
 	BS_mon_block = cpu_inst_mon_block.BS;
 	NB_mon_block = cpu_inst_mon_block.NB;
 	//mon_pos_block_size = cpu_inst_mon_block.mon_pos_block_size;
+	mon_pos_size = cpu_inst_mon_block.mon_pos_block_size;
+
+	n_mon_single = cpu_inst_mon_block.n_mon_single;
+	size_t mon_pos_single_size = 2*n_mon_single*sizeof(unsigned short);
+	cudaMalloc((void **)&mon_single_pos_block, mon_pos_single_size);
+	cudaMemcpy(mon_single_pos_block, cpu_inst_mon_block.mon_single_pos_block, mon_pos_single_size, cudaMemcpyHostToDevice);
+
+
+	mon_level0_BS = 32;
+	mon_global_BS = 64;
+
+    mon_level_BS = shmemsize/2;
 
 	size_t mon_pos_start_block_size = NB_mon_block*sizeof(int);
 	cudaMalloc((void **)&mon_pos_start_block, mon_pos_start_block_size);
@@ -783,7 +780,9 @@ void GPUInst::init_mon(const CPUInstHomMon& cpu_inst_mon, const CPUInstHomMonBlo
 	size_t mon_pos_block_size = cpu_inst_mon_block.mon_pos_block_size*sizeof(unsigned short);
 	cudaMalloc((void **)&mon_pos_block, mon_pos_block_size);
 	cudaMemcpy(mon_pos_block, cpu_inst_mon_block.mon_pos_block, mon_pos_block_size, cudaMemcpyHostToDevice);
+}
 
+void GPUInst::init_mon(const CPUInstHomMon& cpu_inst_mon){
 	level = cpu_inst_mon.level;
 	n_mon_level = cpu_inst_mon.n_mon_level;
 	n_mon = cpu_inst_mon.n_mon;
@@ -914,9 +913,9 @@ void GPUInst::init_sum(const CPUInstHomSum& cpu_inst_sum){
 
 void GPUInst::init_workspace(const CPUInstHom& cpu_inst){
 	//std::cout << "n_workspace1 = " << n_workspace1 << std::endl;
-	std::cout << "cpu_inst.CPU_inst_hom_block.mon_pos_block_size = " \
+	//std::cout << "cpu_inst.CPU_inst_hom_block.mon_pos_block_size = " \
 			  << cpu_inst.CPU_inst_hom_block.mon_pos_block_size << std::endl;
-	n_workspace = n_coef + cpu_inst.CPU_inst_hom_block.mon_pos_block_size + n_mon_level[0]*2;
+	//n_workspace = n_coef + cpu_inst.CPU_inst_hom_block.mon_pos_block_size + n_mon_level[0]*2;
 	//n_workspace = n_coef + cpu_inst.CPU_inst_hom_mon.mon_pos_size;
 	n_constant = cpu_inst.n_constant;
 };

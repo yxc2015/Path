@@ -147,7 +147,7 @@ T1 mgs_test_any(Workspace& workspace_cpu, CPUInstHom& cpu_inst_hom, int device_o
 
 	if(gpu_test == 1){
 	// GPU MGS
-		GPU_MGS(cpu_inst_hom, sol_gpu, matrix_gpu_q, matrix_gpu_r,\
+		GPU_MGS_Mult(cpu_inst_hom, sol_gpu, matrix_gpu_q, matrix_gpu_r,\
 				cpu_inst_hom.n_predictor, V_data, n_path);
 	}
 	// CPU MGS

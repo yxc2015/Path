@@ -35,9 +35,9 @@ void eval(GPUWorkspace& workspace, const GPUInst& inst) {
 		}
 	}*/
 
-	eval_mon(workspace, inst, workspace.n_path);
+	eval_mon(workspace, inst);
 
-	eval_sum(workspace, inst, workspace.n_path);
+	eval_sum(workspace, inst);
 }
 
 int GPU_Eval(const CPUInstHom& hom, CT* cpu_sol0, CT* cpu_t, \
@@ -48,7 +48,7 @@ int GPU_Eval(const CPUInstHom& hom, CT* cpu_sol0, CT* cpu_t, \
 	cuda_set();
 
 	GPUInst inst(hom, n_path);
-	GPUWorkspace workspace(inst.n_workspace, inst.mon_pos_size, inst.n_coef, inst.n_constant, inst.n_eq, inst.dim, n_predictor, inst.alpha, n_path);
+	GPUWorkspace workspace(inst.mon_pos_size, inst.n_coef, inst.n_constant, inst.n_eq, inst.dim, n_predictor, inst.alpha, n_path);
 
 	dim3 update_t_grid = get_grid(n_path,inst.predict_BS,1);
 	std::cout << "n_path = " << n_path << std::endl;
@@ -80,14 +80,15 @@ int GPU_Eval(const CPUInstHom& hom, CT* cpu_sol0, CT* cpu_t, \
 		gpu_workspace_all = new CT*[n_path];
 		gpu_matrix_all = new CT*[n_path];
 		CT* gpu_matrix_mult = workspace.get_matrix_mult();
-		CT* gpu_workspace_mult = workspace.get_workspace_mult();
+		CT* gpu_workspace_mult = workspace.get_workspace();
 		for(int path_idx=0; path_idx<n_path; path_idx++){
 			gpu_matrix_all[path_idx] = new CT[workspace.n_matrix];
 			for(int i=0; i<workspace.n_matrix; i++){
 				gpu_matrix_all[path_idx][i] = gpu_matrix_mult[n_path*i+path_idx];
 			}
-			gpu_workspace_all[path_idx] = new CT[workspace.n];
-			for(int i=0; i<workspace.n; i++){
+			int n = workspace.n_coef+workspace.mon_pos_size;
+			gpu_workspace_all[path_idx] = new CT[n];
+			for(int i=0; i<n; i++){
 				gpu_workspace_all[path_idx][i] = gpu_workspace_mult[n_path*i+path_idx];
 			}
 		}
